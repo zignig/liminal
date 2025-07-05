@@ -12,14 +12,22 @@ use futures_lite::StreamExt;
 use iroh::{Endpoint, NodeAddr, PublicKey, RelayMode, RelayUrl, SecretKey};
 use iroh_gossip::{
     api::{Event, GossipReceiver},
-    net::{Gossip, GOSSIP_ALPN},
+    net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
+use iroh_blobs::{net_protocol::Blobs, ALPN as BLOBS_ALPN,store::fs::FsStore};
 use n0_future::task;
 use n0_snafu::{Result, ResultExt};
 use n0_watcher::Watcher;
 use serde::{Deserialize, Serialize};
 use snafu::whatever;
+use std::{path::PathBuf};
+
+mod web;
+mod templates;
+
+#[macro_use]
+extern crate rocket;
 
 /// Chat over iroh-gossip
 ///
@@ -69,7 +77,15 @@ enum Command {
     },
 }
 
-#[tokio::main]
+use crate::templates::HomePageTemplate;
+use rocket::response::Responder;
+
+#[get("/")]
+fn index<'r>() ->  impl Responder<'r, 'static>{
+    HomePageTemplate{}
+}
+
+#[rocket::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
     let args = Args::parse();
@@ -104,7 +120,7 @@ async fn main() -> Result<()> {
         (false, Some(url)) => RelayMode::Custom(url.into()),
         (true, None) => RelayMode::Disabled,
         (true, Some(_)) => {
-            whatever!("You cannot set --no-relay and --relay at the same time")
+            whatever!("You cannot set --no-relay and --relay at the same time");
         }
     };
     println!("> using relay servers: {}", fmt_relay_mode(&relay_mode));
@@ -116,7 +132,11 @@ async fn main() -> Result<()> {
         .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, args.bind_port))
         .bind()
         .await?;
+
     println!("> our node id: {}", endpoint.node_id());
+    for i in endpoint.remote_info_iter() {
+        println!("{:?}", i);
+    }
 
     // create the gossip protocol
     let gossip = Gossip::builder().spawn(endpoint.clone());
@@ -129,12 +149,21 @@ async fn main() -> Result<()> {
     };
     println!("> ticket to join us: {ticket}");
 
-    // setup router
-    let router = iroh::protocol::Router::builder(endpoint.clone())
-        .accept(GOSSIP_ALPN, gossip.clone())
+    println!("blobs!");
+    let mut path = PathBuf::new();
+    path.push("data");
+    println!("Data store : {}",path.display());
+    let store = FsStore::load(path).await.unwrap();
+    let blobs = iroh_blobs::net_protocol::Blobs::new(&store,endpoint.clone(),None);
+
+        // setup router
+    let _router = iroh::protocol::Router::builder(endpoint.clone())
+        .accept(GOSSIP_ALPN,gossip.clone())
+        .accept(BLOBS_ALPN,blobs)
         .spawn();
 
     // join the gossip topic by connecting to known peers, if any
+
     let peer_ids = peers.iter().map(|p| p.node_id).collect();
     if peers.is_empty() {
         println!("> waiting for peers to join us...");
@@ -145,7 +174,8 @@ async fn main() -> Result<()> {
             endpoint.add_node_addr(peer)?;
         }
     };
-    let (mut sender, receiver) = gossip.subscribe_and_join(topic, peer_ids).await?.split();
+
+    let (mut sender, receiver) = gossip.subscribe(topic, peer_ids).await?.split();
     println!("> connected!");
 
     // broadcast our name, if set
@@ -160,20 +190,33 @@ async fn main() -> Result<()> {
 
     // spawn an input thread that reads stdin
     // not using tokio here because they recommend this for "technical reasons"
-    let (line_tx, mut line_rx) = tokio::sync::mpsc::channel(1);
-    std::thread::spawn(move || input_loop(line_tx));
+    // let (line_tx, mut line_rx) = tokio::sync::mpsc::channel(1);
+    // std::thread::spawn(move || input_loop(line_tx));
 
-    // broadcast each line we type
-    println!("> type a message and hit enter to broadcast...");
-    while let Some(text) = line_rx.recv().await {
-        let message = Message::Message { text: text.clone() };
-        let encoded_message = SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
-        sender.broadcast(encoded_message).await?;
-        println!("> sent: {text}");
-    }
+    // // broadcast each line we type
+    // println!("> type a message and hit enter to broadcast...");
+    // while let Some(text) = line_rx.recv().await {
+    //     let message = Message::Message { text: text.clone() };
+    //     let encoded_message = SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
+    //     sender.broadcast(encoded_message).await?;
+    //     println!("> sent: {text}");
+    // }
 
-    // shutdown
-    router.shutdown().await.e()?;
+    // // shutdown
+    // router.shutdown().await.e()?;
+    println!("starting web server ");
+    // start the web server
+    let figment = rocket::Config::figment()
+        .merge(("address", "0.0.0.0"))
+        .merge(("port", 8080))
+        .merge(("log","normal"));
+
+    let _result = rocket::custom(figment)
+        .manage(sender)
+        .mount("/", routes![index])
+        .mount("/",routes![web::fixed::dist])
+        .launch()
+        .await;
 
     Ok(())
 }
