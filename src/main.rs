@@ -17,13 +17,13 @@ use iroh_gossip::{
     proto::TopicId,
 };
 use n0_future::task;
+use n0_future::{StreamExt, stream};
 use n0_snafu::{Result, ResultExt};
 use n0_watcher::Watcher;
 use serde::{Deserialize, Serialize};
 use snafu::whatever;
 use std::path::PathBuf;
 use tokio::{signal::ctrl_c, sync::mpsc};
-use n0_future::{stream,StreamExt};
 
 mod templates;
 mod web;
@@ -163,28 +163,27 @@ async fn main() -> Result<()> {
     println!("blobs!");
     let path = PathBuf::from("data/blobs");
     println!("Data store : {}", path.display());
-    
+
     let store = FsStore::load(path).await.unwrap();
     let blobs = iroh_blobs::net_protocol::Blobs::new(&store, endpoint.clone(), None);
 
-
-    match args.command { 
+    match args.command {
         Command::Upload { path } => {
-            if let Some(p) = path{ 
-                println!("{:?}",p.display());
+            if let Some(p) = path {
+                println!("{:?}", p.display());
                 store.add_path(p).await?;
             }
-        },
+        }
         _ => {}
     }
-        
+
     let mut t = store.tags().list().await.unwrap();
-    while let Some(event) = t.next().await{
-        println!("tags {:?}",event);
+    while let Some(event) = t.next().await {
+        println!("tags {:?}", event);
     }
 
     // setup router
-    let _router = iroh::protocol::Router::builder(endpoint.clone())
+    let router = iroh::protocol::Router::builder(endpoint.clone())
         .accept(GOSSIP_ALPN, gossip.clone())
         .accept(BLOBS_ALPN, blobs)
         .spawn();
@@ -215,21 +214,6 @@ async fn main() -> Result<()> {
     // subscribe and print loop
     task::spawn(subscribe_loop(receiver));
 
-    // spawn an input thread that reads stdin
-    // not using tokio here because they recommend this for "technical reasons"
-    // let (line_tx, mut line_rx) = tokio::sync::mpsc::channel(1);
-    // std::thread::spawn(move || input_loop(line_tx));
-
-    // // broadcast each line we type
-    // println!("> type a message and hit enter to broadcast...");
-    // while let Some(text) = line_rx.recv().await {
-    //     let message = Message::Message { text: text.clone() };
-    //     let encoded_message = SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
-    //     sender.broadcast(encoded_message).await?;
-    //     println!("> sent: {text}");
-    // }
-    // // shutdown
-    // router.shutdown().await.e()?;
     if args.web {
         println!("starting web server ");
         // start the web server
@@ -244,9 +228,25 @@ async fn main() -> Result<()> {
             .mount("/", routes![web::fixed::dist])
             .launch()
             .await;
-    } else { 
-         ctrl_c().await.unwrap();
+    } else {
+        // spawn an input thread that reads stdin
+        // not using tokio here because they recommend this for "technical reasons"
+        let (line_tx, mut line_rx) = tokio::sync::mpsc::channel(1);
+        std::thread::spawn(move || input_loop(line_tx));
+
+        // // broadcast each line we type
+        println!("> type a message and hit enter to broadcast...");
+        while let Some(text) = line_rx.recv().await {
+            let message = Message::Message { text: text.clone() };
+            let encoded_message = SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
+            sender.broadcast(encoded_message).await?;
+            println!("> sent: {text}");
+        }
+
+        // ctrl_c().await.unwrap();
     }
+    // Shutdown
+    router.shutdown().await.e()?;
     Ok(())
 }
 
