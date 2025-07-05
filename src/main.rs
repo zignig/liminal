@@ -8,23 +8,25 @@ use std::{
 use bytes::Bytes;
 use clap::Parser;
 use ed25519_dalek::Signature;
-use futures_lite::StreamExt;
+//use futures_lite::StreamExt;
 use iroh::{Endpoint, NodeAddr, PublicKey, RelayMode, RelayUrl, SecretKey};
+use iroh_blobs::{ALPN as BLOBS_ALPN, store::fs::FsStore};
 use iroh_gossip::{
     api::{Event, GossipReceiver},
     net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
-use iroh_blobs::{net_protocol::Blobs, ALPN as BLOBS_ALPN,store::fs::FsStore};
 use n0_future::task;
 use n0_snafu::{Result, ResultExt};
 use n0_watcher::Watcher;
 use serde::{Deserialize, Serialize};
 use snafu::whatever;
-use std::{path::PathBuf};
+use std::path::PathBuf;
+use tokio::{signal::ctrl_c, sync::mpsc};
+use n0_future::{stream,StreamExt};
 
-mod web;
 mod templates;
+mod web;
 
 #[macro_use]
 extern crate rocket;
@@ -51,6 +53,9 @@ struct Args {
     /// Disable relay completely.
     #[clap(long)]
     no_relay: bool,
+    /// Activate the web server
+    #[clap(short, long)]
+    web: bool,
     /// Set your nickname.
     #[clap(short, long)]
     name: Option<String>,
@@ -75,14 +80,17 @@ enum Command {
         /// The ticket, as base32 string.
         ticket: String,
     },
+    Upload {
+        path: Option<PathBuf>,
+    },
 }
 
 use crate::templates::HomePageTemplate;
 use rocket::response::Responder;
 
 #[get("/")]
-fn index<'r>() ->  impl Responder<'r, 'static>{
-    HomePageTemplate{}
+fn index<'r>() -> impl Responder<'r, 'static> {
+    HomePageTemplate {}
 }
 
 #[rocket::main]
@@ -101,6 +109,10 @@ async fn main() -> Result<()> {
             let Ticket { topic, peers } = Ticket::from_str(ticket)?;
             println!("> joining chat room for topic {topic}");
             (topic, peers)
+        }
+        Command::Upload { path } => {
+            let topic = TopicId::from_bytes(rand::random());
+            (topic, vec![])
         }
     };
 
@@ -137,7 +149,6 @@ async fn main() -> Result<()> {
     for i in endpoint.remote_info_iter() {
         println!("{:?}", i);
     }
-
     // create the gossip protocol
     let gossip = Gossip::builder().spawn(endpoint.clone());
 
@@ -150,16 +161,32 @@ async fn main() -> Result<()> {
     println!("> ticket to join us: {ticket}");
 
     println!("blobs!");
-    let mut path = PathBuf::new();
-    path.push("data");
-    println!("Data store : {}",path.display());
+    let path = PathBuf::from("data/blobs");
+    println!("Data store : {}", path.display());
+    
     let store = FsStore::load(path).await.unwrap();
-    let blobs = iroh_blobs::net_protocol::Blobs::new(&store,endpoint.clone(),None);
+    let blobs = iroh_blobs::net_protocol::Blobs::new(&store, endpoint.clone(), None);
 
-        // setup router
+
+    match args.command { 
+        Command::Upload { path } => {
+            if let Some(p) = path{ 
+                println!("{:?}",p.display());
+                store.add_path(p).await?;
+            }
+        },
+        _ => {}
+    }
+        
+    let mut t = store.tags().list().await.unwrap();
+    while let Some(event) = t.next().await{
+        println!("tags {:?}",event);
+    }
+
+    // setup router
     let _router = iroh::protocol::Router::builder(endpoint.clone())
-        .accept(GOSSIP_ALPN,gossip.clone())
-        .accept(BLOBS_ALPN,blobs)
+        .accept(GOSSIP_ALPN, gossip.clone())
+        .accept(BLOBS_ALPN, blobs)
         .spawn();
 
     // join the gossip topic by connecting to known peers, if any
@@ -201,23 +228,25 @@ async fn main() -> Result<()> {
     //     sender.broadcast(encoded_message).await?;
     //     println!("> sent: {text}");
     // }
-
     // // shutdown
     // router.shutdown().await.e()?;
-    println!("starting web server ");
-    // start the web server
-    let figment = rocket::Config::figment()
-        .merge(("address", "0.0.0.0"))
-        .merge(("port", 8080))
-        .merge(("log","normal"));
+    if args.web {
+        println!("starting web server ");
+        // start the web server
+        let figment = rocket::Config::figment()
+            .merge(("address", "0.0.0.0"))
+            .merge(("port", 8080))
+            .merge(("log", "normal"));
 
-    let _result = rocket::custom(figment)
-        .manage(sender)
-        .mount("/", routes![index])
-        .mount("/",routes![web::fixed::dist])
-        .launch()
-        .await;
-
+        let _result = rocket::custom(figment)
+            .manage(sender)
+            .mount("/", routes![index])
+            .mount("/", routes![web::fixed::dist])
+            .launch()
+            .await;
+    } else { 
+         ctrl_c().await.unwrap();
+    }
     Ok(())
 }
 
