@@ -9,24 +9,25 @@ use bytes::Bytes;
 use clap::Parser;
 use ed25519_dalek::Signature;
 //use futures_lite::StreamExt;
-use iroh::{Endpoint, NodeAddr, PublicKey, RelayMode, RelayUrl, SecretKey};
+use iroh::{Endpoint, NodeAddr, PublicKey, RelayMode, RelayUrl, SecretKey, net_report::Options};
 use iroh_blobs::{ALPN as BLOBS_ALPN, store::fs::FsStore};
 use iroh_gossip::{
     api::{Event, GossipReceiver},
     net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
+use n0_future::StreamExt;
 use n0_future::task;
-use n0_future::{StreamExt, stream};
 use n0_snafu::{Result, ResultExt};
 use n0_watcher::Watcher;
 use serde::{Deserialize, Serialize};
 use snafu::whatever;
 use std::path::PathBuf;
-use tokio::{signal::ctrl_c, sync::mpsc};
+//use tokio::{signal::ctrl_c, sync::mpsc};
 
 mod templates;
 mod web;
+mod config;
 
 #[macro_use]
 extern crate rocket;
@@ -92,6 +93,10 @@ use rocket::response::Responder;
 fn index<'r>() -> impl Responder<'r, 'static> {
     HomePageTemplate {}
 }
+#[post("/message")]
+fn message<'r>() -> impl Responder<'r, 'static> {
+    HomePageTemplate {}
+}
 
 #[rocket::main]
 async fn main() -> Result<()> {
@@ -110,7 +115,7 @@ async fn main() -> Result<()> {
             println!("> joining chat room for topic {topic}");
             (topic, peers)
         }
-        Command::Upload { path } => {
+        Command::Upload { path: _ } => {
             let topic = TopicId::from_bytes(rand::random());
             (topic, vec![])
         }
@@ -171,15 +176,12 @@ async fn main() -> Result<()> {
         Command::Upload { path } => {
             if let Some(p) = path {
                 println!("{:?}", p.display());
-                store.add_path(p).await?;
+                let f = store.add_path(&p).await?;
+                println!("{:#?}", f);
+                store.tags().set(p.display().to_string(), f).await?;
             }
         }
         _ => {}
-    }
-
-    let mut t = store.tags().list().await.unwrap();
-    while let Some(event) = t.next().await {
-        println!("tags {:?}", event);
     }
 
     // setup router
@@ -200,6 +202,11 @@ async fn main() -> Result<()> {
             endpoint.add_node_addr(peer)?;
         }
     };
+
+    let mut t = store.tags().list_prefix("/").await.unwrap();
+    while let Some(event) = t.next().await {
+        println!("tags {:?}", event);
+    }
 
     let (mut sender, receiver) = gossip.subscribe(topic, peer_ids).await?.split();
     println!("> connected!");
@@ -224,8 +231,7 @@ async fn main() -> Result<()> {
 
         let _result = rocket::custom(figment)
             .manage(sender)
-            .mount("/", routes![index])
-            .mount("/", routes![web::fixed::dist])
+            .mount("/", routes![index, web::fixed::dist, message])
             .launch()
             .await;
     } else {

@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1> Index content</h1>
+<h1> Index content</h1>
+<form id="new-message">
+    <input class="input" type="text" name="username" id="username" maxlength="19" placeholder="guest" autocomplete="off">
+    <input class="input" type="text" name="message" id="message" autocomplete="off" placeholder="Send a message..." autofocus>
+    <button type="submit" id="send">Send</button>
+</form>
 {% endblock %}
