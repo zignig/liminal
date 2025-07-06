@@ -12,8 +12,8 @@ use ed25519_dalek::Signature;
 use iroh::{Endpoint, NodeAddr, PublicKey, RelayMode, RelayUrl, SecretKey, net_report::Options};
 use iroh_blobs::{ALPN as BLOBS_ALPN, store::fs::FsStore};
 use iroh_gossip::{
-    api::{Event, GossipReceiver},
-    net::{GOSSIP_ALPN, Gossip},
+    api::{Event, GossipReceiver, GossipSender},
+    net::{Gossip, GOSSIP_ALPN},
     proto::TopicId,
 };
 use n0_future::StreamExt;
@@ -88,14 +88,27 @@ enum Command {
 
 use crate::templates::HomePageTemplate;
 use rocket::response::Responder;
+use rocket::State;
+use rocket::form::{Form, FromForm};
 
 #[get("/")]
 fn index<'r>() -> impl Responder<'r, 'static> {
     HomePageTemplate {}
 }
-#[post("/message")]
-fn message<'r>() -> impl Responder<'r, 'static> {
-    HomePageTemplate {}
+
+#[derive(FromForm)]
+struct WebMessage<'r> {
+    room: &'r str,
+    username: &'r str,
+    message: &'r str
+}
+
+
+#[post("/message",data="<web_message>")]
+async fn message<'r>(web_message : Form<WebMessage<'_>> , _sender : &State<GossipSender>) ->  &'static str{
+    println!("{:?}",&web_message.message);
+    //    sender.broadcast(message).await?;
+    "zoink"
 }
 
 #[rocket::main]
