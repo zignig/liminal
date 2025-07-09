@@ -153,11 +153,11 @@ async fn main() -> Result<()> {
     println!("> connected!");
 
     // broadcast our name, if set
-    if let Some(name) = args.name {
-        let message = Message::AboutMe { name };
-        let encoded_message = SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
-        sender.broadcast(encoded_message).await?;
-    }
+    // if let Some(name) = args.name {
+    //     let message = Message::AboutMe { name };
+    //     let encoded_message = SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
+    //     sender.broadcast(encoded_message).await?;
+    // }
 
     let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
     while let Some(event) = t.next().await {

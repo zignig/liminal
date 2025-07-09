@@ -47,14 +47,16 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: Blobs) -> Resul
                         .connect(msg.delivered_from, iroh_blobs::protocol::ALPN)
                         .await?;
                     //if blobs.store().has(key).await.expect("") == false {
-                    println!("a new key {:?}", key);
                     // thes are hashseq not raw
                     let knf = HashAndFormat::new(key, BlobFormat::HashSeq);
-                    let r = blobs.store().remote().fetch(conn, knf).await?;
-                    println!("{:?}", r);
-                    let dt = Local::now().to_rfc3339().to_owned();
-                    blobs.store().tags().set(format!("col-{}", dt), key).await?;
-                    //}
+                    let local = blobs.store().remote().local(knf).await.expect("msg");
+                    if !local.is_complete(){
+                        println!("a new key {:?}", key);
+                        let r = blobs.store().remote().fetch(conn, knf).await?;
+                        println!("{:?}", r);
+                        let dt = Local::now().to_rfc3339().to_owned();
+                        blobs.store().tags().set(format!("col-{}", dt), key).await?;
+                    }
                 }
             }
         }
@@ -71,9 +73,8 @@ pub async fn publish_loop(mut sender: GossipSender, blobs: Blobs, secret: Secret
             match event {
                 Ok(tag) => {
                     let message = Message::Upkey { key: tag.hash };
-                    println!("Sending --- {:?}", &message);
-                    let encoded_message =
-                        SignedMessage::sign_and_encode(&secret, &message)?;
+                    // println!("Sending --- {:?}", &message);
+                    let encoded_message = SignedMessage::sign_and_encode(&secret, &message)?;
                     sender.broadcast(encoded_message).await?;
                 }
                 Err(_) => todo!(),
