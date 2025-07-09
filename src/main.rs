@@ -152,38 +152,6 @@ async fn main() -> Result<()> {
     let (mut sender, receiver) = gossip.subscribe_and_join(topic, peer_ids).await?.split();
     println!("> connected!");
 
-    // broadcast our name, if set
-    // if let Some(name) = args.name {
-    //     let message = Message::AboutMe { name };
-    //     let encoded_message = SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
-    //     sender.broadcast(encoded_message).await?;
-    // }
-
-    let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
-    while let Some(event) = t.next().await {
-        println!("tags {:?}", event);
-        match &event {
-            Ok(t) => {
-                let c = Collection::load(t.hash, store.as_ref()).await;
-                match c {
-                    Ok(coll) => println!("{:?}", coll),
-                    Err(e) => println!("error {:?}",e)
-                }
-                
-            }
-            Err(e) => println!("{:?}", e),
-        };
-        match event {
-            Ok(tag) => {
-                let message = Message::Upkey { key: tag.hash };
-                println!("Sending --- {:?}",&message);
-                let encoded_message =
-                    SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
-                sender.broadcast(encoded_message).await?;
-            }
-            Err(_) => todo!(),
-        }
-    }
     // subscribe and print loop
     task::spawn(chat::subscribe_loop(receiver,blobs.clone()));
     task::spawn(chat::publish_loop(sender,blobs.clone(),endpoint.secret_key().clone()));

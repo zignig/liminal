@@ -46,8 +46,6 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: Blobs) -> Resul
                         .endpoint()
                         .connect(msg.delivered_from, iroh_blobs::protocol::ALPN)
                         .await?;
-                    //if blobs.store().has(key).await.expect("") == false {
-                    // thes are hashseq not raw
                     let knf = HashAndFormat::new(key, BlobFormat::HashSeq);
                     let local = blobs.store().remote().local(knf).await.expect("msg");
                     if !local.is_complete(){
@@ -67,7 +65,6 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: Blobs) -> Resul
 pub async fn publish_loop(mut sender: GossipSender, blobs: Blobs, secret: SecretKey) -> Result<()> {
     loop {
         tokio::time::sleep(Duration::from_secs(10)).await;
-        println!("boop");
         let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
         while let Some(event) = t.next().await {
             match event {
@@ -79,7 +76,7 @@ pub async fn publish_loop(mut sender: GossipSender, blobs: Blobs, secret: Secret
                 }
                 Err(_) => todo!(),
             }
-            tokio::time::sleep(Duration::from_secs(1)).await;
+            // tokio::time::sleep(Duration::from_secs(1)).await;
         }
     }
 }
