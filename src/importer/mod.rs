@@ -90,7 +90,7 @@ pub async fn import(path: PathBuf, db: &Store) -> anyhow::Result<()> {
 
     let mut names_and_tags = Vec::<(String, TempTag)>::new();
 
-    for (_rel_path, full_path) in data_sources {
+    for (rel_path, full_path) in data_sources {
         //println!("{:?}", full_path);
         let imp = db.add_path(&full_path);
         let mut stream = imp.stream().await;
@@ -109,7 +109,7 @@ pub async fn import(path: PathBuf, db: &Store) -> anyhow::Result<()> {
         // db.tags()
             // .set(&full_path.display().to_string(), *temp_tag.hash())
             // .await?;
-        names_and_tags.push((full_path.display().to_string(), temp_tag));
+        names_and_tags.push((rel_path.to_string(), temp_tag));
     }
     let (collection,_data) = names_and_tags
         .iter()

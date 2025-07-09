@@ -16,6 +16,7 @@ use n0_future::task;
 use n0_snafu::{Result, ResultExt};
 use n0_watcher::Watcher;
 use snafu::whatever;
+use tokio::signal::ctrl_c;
 use std::path::PathBuf;
 //use tokio::{signal::ctrl_c, sync::mpsc};
 
@@ -148,7 +149,7 @@ async fn main() -> Result<()> {
         }
     };
 
-    let (mut sender, receiver) = gossip.subscribe(topic, peer_ids).await?.split();
+    let (mut sender, receiver) = gossip.subscribe_and_join(topic, peer_ids).await?.split();
     println!("> connected!");
 
     // broadcast our name, if set
@@ -185,7 +186,7 @@ async fn main() -> Result<()> {
     }
     // subscribe and print loop
     task::spawn(chat::subscribe_loop(receiver,blobs.clone()));
-
+    task::spawn(chat::publish_loop(sender,blobs.clone(),endpoint.secret_key().clone()));
     if args.web {
         println!("starting web server ");
         // start the web server
@@ -195,7 +196,7 @@ async fn main() -> Result<()> {
             .merge(("log_level", "normal"));
 
         let _result = rocket::custom(figment)
-            .manage(sender)
+            // .manage(sender)
             .manage(blobs.clone())
             .mount(
                 "/",
@@ -206,19 +207,19 @@ async fn main() -> Result<()> {
     } else {
         // spawn an input thread that reads stdin
         // not using tokio here because they recommend this for "technical reasons"
-        let (line_tx, mut line_rx) = tokio::sync::mpsc::channel(1);
-        std::thread::spawn(move || chat::input_loop(line_tx));
+        // let (line_tx, mut line_rx) = tokio::sync::mpsc::channel(1);
+        // std::thread::spawn(move || chat::input_loop(line_tx));
 
-        // // broadcast each line we type
-        println!("> type a message and hit enter to broadcast...");
-        while let Some(text) = line_rx.recv().await {
-            let message = Message::Message { text: text.clone() };
-            let encoded_message = SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
-            sender.broadcast(encoded_message).await?;
-            println!("> sent: {text}");
-        }
+        // // // broadcast each line we type
+        // println!("> type a message and hit enter to broadcast...");
+        // while let Some(text) = line_rx.recv().await {
+        //     let message = Message::Message { text: text.clone() };
+        //     let encoded_message = SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
+        //     sender.broadcast(encoded_message).await?;
+        //     println!("> sent: {text}");
+        // }
 
-        // ctrl_c().await.unwrap();
+        ctrl_c().await.unwrap();
     }
     // Shutdown
     router.shutdown().await.e()?;

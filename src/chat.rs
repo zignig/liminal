@@ -3,25 +3,28 @@ use std::{
     fmt,
     net::{Ipv4Addr, SocketAddrV4},
     str::FromStr,
+    time::Duration,
 };
 
 use bytes::Bytes;
 use chrono::Local;
 use iroh::{NodeAddr, PublicKey, SecretKey};
-use iroh_blobs::{api::Store, net_protocol::Blobs, store::fs::FsStore, Hash};
+use iroh_blobs::{
+    BlobFormat, Hash, HashAndFormat, api::Store, net_protocol::Blobs, store::fs::FsStore,
+};
 use iroh_gossip::{
     api::{Event, GossipReceiver, GossipSender},
-    net::{Gossip, GOSSIP_ALPN},
+    net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
 
 use ed25519_dalek::Signature;
 
 use n0_future::StreamExt;
-use serde::{Deserialize, Serialize};
 use n0_snafu::{Result, ResultExt};
+use serde::{Deserialize, Serialize};
 
-pub async fn subscribe_loop(mut receiver: GossipReceiver,blobs: Blobs) -> Result<()> {
+pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: Blobs) -> Result<()> {
     // init a peerid -> name hashmap
     let mut names = HashMap::new();
     while let Some(event) = receiver.try_next().await? {
@@ -38,30 +41,57 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver,blobs: Blobs) -> Result
                         .map_or_else(|| from.fmt_short(), String::to_string);
                     println!("{name}: {text}");
                 }
-                Message::Upkey { key } => { 
-                    println!("a new key {:?}",key);
-                    let conn = blobs.endpoint().connect(msg.delivered_from
-                    , iroh_blobs::protocol::ALPN).await?;
-                    let r = blobs.store().remote().fetch(conn, key).await?;
-                    println!("{:?}",r);
+                Message::Upkey { key } => {
+                    let conn = blobs
+                        .endpoint()
+                        .connect(msg.delivered_from, iroh_blobs::protocol::ALPN)
+                        .await?;
+                    //if blobs.store().has(key).await.expect("") == false {
+                    println!("a new key {:?}", key);
+                    // thes are hashseq not raw
+                    let knf = HashAndFormat::new(key, BlobFormat::HashSeq);
+                    let r = blobs.store().remote().fetch(conn, knf).await?;
+                    println!("{:?}", r);
                     let dt = Local::now().to_rfc3339().to_owned();
-                    blobs.store().tags().set(format!("col-{}",dt),key).await?;
-                }           
+                    blobs.store().tags().set(format!("col-{}", dt), key).await?;
+                    //}
+                }
             }
         }
     }
     Ok(())
 }
 
-pub fn input_loop(line_tx: tokio::sync::mpsc::Sender<String>) -> Result<()> {
-    let mut buffer = String::new();
-    let stdin = std::io::stdin(); // We get `Stdin` here.
+pub async fn publish_loop(mut sender: GossipSender, blobs: Blobs, secret: SecretKey) -> Result<()> {
     loop {
-        stdin.read_line(&mut buffer).e()?;
-        line_tx.blocking_send(buffer.clone()).e()?;
-        buffer.clear();
+        tokio::time::sleep(Duration::from_secs(10)).await;
+        println!("boop");
+        let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
+        while let Some(event) = t.next().await {
+            match event {
+                Ok(tag) => {
+                    let message = Message::Upkey { key: tag.hash };
+                    println!("Sending --- {:?}", &message);
+                    let encoded_message =
+                        SignedMessage::sign_and_encode(&secret, &message)?;
+                    sender.broadcast(encoded_message).await?;
+                }
+                Err(_) => todo!(),
+            }
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
     }
 }
+
+// pub fn input_loop(line_tx: tokio::sync::mpsc::Sender<String>) -> Result<()> {
+//     let mut buffer = String::new();
+//     let stdin = std::io::stdin(); // We get `Stdin` here.
+//     loop {
+//         stdin.read_line(&mut buffer).e()?;
+//         line_tx.blocking_send(buffer.clone()).e()?;
+//         buffer.clear();
+//     }
+// }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignedMessage {
@@ -98,7 +128,7 @@ impl SignedMessage {
 pub enum Message {
     AboutMe { name: String },
     Message { text: String },
-    Upkey { key: Hash}
+    Upkey { key: Hash },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -137,7 +167,3 @@ impl FromStr for Ticket {
         Self::from_bytes(&bytes)
     }
 }
-
-
-
-
