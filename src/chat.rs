@@ -7,6 +7,7 @@ use std::{
 
 use bytes::Bytes;
 use iroh::{NodeAddr, PublicKey, SecretKey};
+use iroh_blobs::Hash;
 use iroh_gossip::{
     api::{Event, GossipReceiver, GossipSender},
     net::{Gossip, GOSSIP_ALPN},
@@ -35,6 +36,9 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver) -> Result<()> {
                         .get(&from)
                         .map_or_else(|| from.fmt_short(), String::to_string);
                     println!("{name}: {text}");
+                }
+                Message::Upkey { key } => { 
+                    println!("a new key {:?}",key);
                 }
             }
         }
@@ -87,6 +91,7 @@ impl SignedMessage {
 pub enum Message {
     AboutMe { name: String },
     Message { text: String },
+    Upkey { key: Hash}
 }
 
 #[derive(Debug, Serialize, Deserialize)]

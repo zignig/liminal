@@ -3,7 +3,6 @@ use std::{
     str::FromStr,
 };
 
-
 //use futures_lite::StreamExt;
 use clap::Parser;
 use iroh::{Endpoint, RelayMode, SecretKey};
@@ -24,10 +23,9 @@ mod chat;
 mod cli;
 mod config;
 mod importer;
+mod replicate;
 mod templates;
 mod web;
-mod replicate;
-
 
 use chat::Message;
 use chat::Ticket;
@@ -110,7 +108,6 @@ async fn main() -> Result<()> {
     let path = PathBuf::from("data/blobs");
     println!("Data store : {}", path.display());
 
-    
     let store = FsStore::load(path).await.unwrap();
     let blobs = iroh_blobs::net_protocol::Blobs::new(&store, endpoint.clone(), None);
     match args.command {
@@ -151,18 +148,6 @@ async fn main() -> Result<()> {
         }
     };
 
-    let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
-    while let Some(event) = t.next().await {
-        println!("tags {:?}", event);
-        // let b = match event {
-        //     Ok(t) => {
-        //         let c = Collection::load(t.hash, store.as_ref()).await.expect("fail");
-        //         println!("{:?}", c);
-        //     }
-        //     Err(e) => println!("{:?}", e),
-        // };
-    }
-
     let (mut sender, receiver) = gossip.subscribe(topic, peer_ids).await?.split();
     println!("> connected!");
 
@@ -173,6 +158,27 @@ async fn main() -> Result<()> {
         sender.broadcast(encoded_message).await?;
     }
 
+    let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
+    while let Some(event) = t.next().await {
+        println!("tags {:?}", event);
+        // let b = match event {
+        //     Ok(t) => {
+        //         let c = Collection::load(t.hash, store.as_ref()).await.expect("fail");
+        //         println!("{:?}", c);
+        //     }
+        //     Err(e) => println!("{:?}", e),
+        // };
+        match event {
+            Ok(tag) => {
+                let message = Message::Upkey { key: tag.hash };
+                println!("{:?}",&message);
+                let encoded_message =
+                    SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
+                sender.broadcast(encoded_message).await?;
+            }
+            Err(_) => todo!(),
+        }
+    }
     // subscribe and print loop
     task::spawn(chat::subscribe_loop(receiver));
 
@@ -182,7 +188,7 @@ async fn main() -> Result<()> {
         let figment = rocket::Config::figment()
             .merge(("address", "0.0.0.0"))
             .merge(("port", 8080))
-            .merge(("log", "normal"));
+            .merge(("log_level", "normal"));
 
         let _result = rocket::custom(figment)
             .manage(sender)
