@@ -149,7 +149,7 @@ async fn main() -> Result<()> {
         }
     };
 
-    let (mut sender, receiver) = gossip.subscribe_and_join(topic, peer_ids).await?.split();
+    let (sender, receiver) = gossip.subscribe_and_join(topic, peer_ids).await?.split();
     println!("> connected!");
 
     // subscribe and print loop

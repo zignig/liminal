@@ -10,7 +10,7 @@ use bytes::Bytes;
 use chrono::Local;
 use iroh::{NodeAddr, PublicKey, SecretKey};
 use iroh_blobs::{
-    BlobFormat, Hash, HashAndFormat, api::Store, net_protocol::Blobs, store::fs::FsStore,
+    api::Store, format::collection::Collection, net_protocol::Blobs, store::fs::FsStore, BlobFormat, Hash, HashAndFormat
 };
 use iroh_gossip::{
     api::{Event, GossipReceiver, GossipSender},
@@ -54,6 +54,11 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: Blobs) -> Resul
                         println!("{:?}", r);
                         let dt = Local::now().to_rfc3339().to_owned();
                         blobs.store().tags().set(format!("col-{}", dt), key).await?;
+                        let col = Collection::load(key,blobs.store()).await.expect("woteva");
+                        for (s,_) in col { 
+                            println!("{}",s);
+                        }
+
                     }
                 }
             }
