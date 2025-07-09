@@ -6,8 +6,9 @@ use std::{
 };
 
 use bytes::Bytes;
+use chrono::Local;
 use iroh::{NodeAddr, PublicKey, SecretKey};
-use iroh_blobs::Hash;
+use iroh_blobs::{api::Store, net_protocol::Blobs, store::fs::FsStore, Hash};
 use iroh_gossip::{
     api::{Event, GossipReceiver, GossipSender},
     net::{Gossip, GOSSIP_ALPN},
@@ -20,7 +21,7 @@ use n0_future::StreamExt;
 use serde::{Deserialize, Serialize};
 use n0_snafu::{Result, ResultExt};
 
-pub async fn subscribe_loop(mut receiver: GossipReceiver) -> Result<()> {
+pub async fn subscribe_loop(mut receiver: GossipReceiver,blobs: Blobs) -> Result<()> {
     // init a peerid -> name hashmap
     let mut names = HashMap::new();
     while let Some(event) = receiver.try_next().await? {
@@ -39,7 +40,13 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver) -> Result<()> {
                 }
                 Message::Upkey { key } => { 
                     println!("a new key {:?}",key);
-                }
+                    let conn = blobs.endpoint().connect(msg.delivered_from
+                    , iroh_blobs::protocol::ALPN).await?;
+                    let r = blobs.store().remote().fetch(conn, key).await?;
+                    println!("{:?}",r);
+                    let dt = Local::now().to_rfc3339().to_owned();
+                    blobs.store().tags().set(format!("col-{}",dt),key).await?;
+                }           
             }
         }
     }

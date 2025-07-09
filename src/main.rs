@@ -6,7 +6,7 @@ use std::{
 //use futures_lite::StreamExt;
 use clap::Parser;
 use iroh::{Endpoint, RelayMode, SecretKey};
-use iroh_blobs::{ALPN as BLOBS_ALPN, store::fs::FsStore};
+use iroh_blobs::{format::collection::Collection, store::fs::FsStore, ALPN as BLOBS_ALPN};
 use iroh_gossip::{
     net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
@@ -21,7 +21,7 @@ use std::path::PathBuf;
 
 mod chat;
 mod cli;
-mod config;
+// mod config;
 mod importer;
 mod replicate;
 mod templates;
@@ -161,17 +161,21 @@ async fn main() -> Result<()> {
     let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
     while let Some(event) = t.next().await {
         println!("tags {:?}", event);
-        // let b = match event {
-        //     Ok(t) => {
-        //         let c = Collection::load(t.hash, store.as_ref()).await.expect("fail");
-        //         println!("{:?}", c);
-        //     }
-        //     Err(e) => println!("{:?}", e),
-        // };
+        match &event {
+            Ok(t) => {
+                let c = Collection::load(t.hash, store.as_ref()).await;
+                match c {
+                    Ok(coll) => println!("{:?}", coll),
+                    Err(e) => println!("error {:?}",e)
+                }
+                
+            }
+            Err(e) => println!("{:?}", e),
+        };
         match event {
             Ok(tag) => {
                 let message = Message::Upkey { key: tag.hash };
-                println!("{:?}",&message);
+                println!("Sending --- {:?}",&message);
                 let encoded_message =
                     SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
                 sender.broadcast(encoded_message).await?;
@@ -180,7 +184,7 @@ async fn main() -> Result<()> {
         }
     }
     // subscribe and print loop
-    task::spawn(chat::subscribe_loop(receiver));
+    task::spawn(chat::subscribe_loop(receiver,blobs.clone()));
 
     if args.web {
         println!("starting web server ");
