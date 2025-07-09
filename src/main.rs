@@ -1,120 +1,47 @@
 use std::{
-    collections::HashMap,
-    fmt,
     net::{Ipv4Addr, SocketAddrV4},
     str::FromStr,
 };
 
-use bytes::Bytes;
-use clap::Parser;
-use ed25519_dalek::Signature;
+
 //use futures_lite::StreamExt;
-use iroh::{Endpoint, NodeAddr, PublicKey, RelayMode, RelayUrl, SecretKey, net_report::Options};
+use clap::Parser;
+use iroh::{Endpoint, RelayMode, SecretKey};
 use iroh_blobs::{ALPN as BLOBS_ALPN, store::fs::FsStore};
 use iroh_gossip::{
-    api::{Event, GossipReceiver, GossipSender},
-    net::{Gossip, GOSSIP_ALPN},
+    net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
 use n0_future::StreamExt;
 use n0_future::task;
 use n0_snafu::{Result, ResultExt};
 use n0_watcher::Watcher;
-use serde::{Deserialize, Serialize};
 use snafu::whatever;
 use std::path::PathBuf;
 //use tokio::{signal::ctrl_c, sync::mpsc};
 
+mod chat;
+mod cli;
+mod config;
+mod importer;
 mod templates;
 mod web;
-mod config;
+mod replicate;
+
+
+use chat::Message;
+use chat::Ticket;
+use cli::Command;
+
+use crate::chat::SignedMessage;
 
 #[macro_use]
 extern crate rocket;
 
-/// Chat over iroh-gossip
-///
-/// This broadcasts signed messages over iroh-gossip and verifies signatures
-/// on received messages.
-///
-/// By default a new node id is created when starting the example. To reuse your identity,
-/// set the `--secret-key` flag with the secret key printed on a previous invocation.
-///
-/// By default, the relay server run by n0 is used. To use a local relay server, run
-///     cargo run --bin iroh-relay --features iroh-relay -- --dev
-/// in another terminal and then set the `-d http://localhost:3340` flag on this example.
-#[derive(Parser, Debug)]
-struct Args {
-    /// secret key to derive our node id from.
-    #[clap(long)]
-    secret_key: Option<String>,
-    /// Set a custom relay server. By default, the relay server hosted by n0 will be used.
-    #[clap(short, long)]
-    relay: Option<RelayUrl>,
-    /// Disable relay completely.
-    #[clap(long)]
-    no_relay: bool,
-    /// Activate the web server
-    #[clap(short, long)]
-    web: bool,
-    /// Set your nickname.
-    #[clap(short, long)]
-    name: Option<String>,
-    /// Set the bind port for our socket. By default, a random port will be used.
-    #[clap(short, long, default_value = "0")]
-    bind_port: u16,
-    #[clap(subcommand)]
-    command: Command,
-}
-
-#[derive(Parser, Debug)]
-enum Command {
-    /// Open a chat room for a topic and print a ticket for others to join.
-    ///
-    /// If no topic is provided, a new topic will be created.
-    Open {
-        /// Optionally set the topic id (64 bytes, as hex string).
-        topic: Option<TopicId>,
-    },
-    /// Join a chat room from a ticket.
-    Join {
-        /// The ticket, as base32 string.
-        ticket: String,
-    },
-    Upload {
-        path: Option<PathBuf>,
-    },
-}
-
-use crate::templates::HomePageTemplate;
-use rocket::response::Responder;
-use rocket::State;
-use rocket::form::{Form, FromForm};
-
-#[get("/")]
-fn index<'r>() -> impl Responder<'r, 'static> {
-    HomePageTemplate {}
-}
-
-#[derive(FromForm)]
-struct WebMessage<'r> {
-    room: &'r str,
-    username: &'r str,
-    message: &'r str
-}
-
-
-#[post("/message",data="<web_message>")]
-async fn message<'r>(web_message : Form<WebMessage<'_>> , _sender : &State<GossipSender>) ->  &'static str{
-    println!("{:?}",&web_message.message);
-    //    sender.broadcast(message).await?;
-    "zoink"
-}
-
 #[rocket::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
-    let args = Args::parse();
+    let args = cli::Args::parse();
 
     // parse the cli command
     let (topic, peers) = match &args.command {
@@ -139,6 +66,7 @@ async fn main() -> Result<()> {
         None => SecretKey::generate(rand::rngs::OsRng),
         Some(key) => key.parse()?,
     };
+
     println!(
         "> our secret key: {}",
         data_encoding::HEXLOWER.encode(&secret_key.to_bytes())
@@ -182,17 +110,24 @@ async fn main() -> Result<()> {
     let path = PathBuf::from("data/blobs");
     println!("Data store : {}", path.display());
 
+    
     let store = FsStore::load(path).await.unwrap();
     let blobs = iroh_blobs::net_protocol::Blobs::new(&store, endpoint.clone(), None);
-
     match args.command {
         Command::Upload { path } => {
             if let Some(p) = path {
-                println!("{:?}", p.display());
-                let f = store.add_path(&p).await?;
-                println!("{:#?}", f);
-                store.tags().set(p.display().to_string(), f).await?;
+                println!("UPLOAD ! -- {:?}", p.display());
+                let good = importer::import(p, &store).await;
+                match good {
+                    Ok(_) => println!("all good"),
+                    Err(e) => println!("{:?}", e),
+                }
             }
+            // if let Some(p) = path {
+            //     let f = store.add_path(&p).await?;
+            //     println!("{:#?}", f);
+            //     store.tags().set(p.display().to_string(), f).await?;
+            // }
         }
         _ => {}
     }
@@ -200,7 +135,7 @@ async fn main() -> Result<()> {
     // setup router
     let router = iroh::protocol::Router::builder(endpoint.clone())
         .accept(GOSSIP_ALPN, gossip.clone())
-        .accept(BLOBS_ALPN, blobs)
+        .accept(BLOBS_ALPN, blobs.clone())
         .spawn();
 
     // join the gossip topic by connecting to known peers, if any
@@ -216,9 +151,16 @@ async fn main() -> Result<()> {
         }
     };
 
-    let mut t = store.tags().list_prefix("/").await.unwrap();
+    let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
     while let Some(event) = t.next().await {
         println!("tags {:?}", event);
+        // let b = match event {
+        //     Ok(t) => {
+        //         let c = Collection::load(t.hash, store.as_ref()).await.expect("fail");
+        //         println!("{:?}", c);
+        //     }
+        //     Err(e) => println!("{:?}", e),
+        // };
     }
 
     let (mut sender, receiver) = gossip.subscribe(topic, peer_ids).await?.split();
@@ -232,7 +174,7 @@ async fn main() -> Result<()> {
     }
 
     // subscribe and print loop
-    task::spawn(subscribe_loop(receiver));
+    task::spawn(chat::subscribe_loop(receiver));
 
     if args.web {
         println!("starting web server ");
@@ -244,14 +186,18 @@ async fn main() -> Result<()> {
 
         let _result = rocket::custom(figment)
             .manage(sender)
-            .mount("/", routes![index, web::fixed::dist, message])
+            .manage(blobs.clone())
+            .mount(
+                "/",
+                routes![web::index, web::fixed::dist, web::message, web::tags],
+            )
             .launch()
             .await;
     } else {
         // spawn an input thread that reads stdin
         // not using tokio here because they recommend this for "technical reasons"
         let (line_tx, mut line_rx) = tokio::sync::mpsc::channel(1);
-        std::thread::spawn(move || input_loop(line_tx));
+        std::thread::spawn(move || chat::input_loop(line_tx));
 
         // // broadcast each line we type
         println!("> type a message and hit enter to broadcast...");
@@ -267,112 +213,6 @@ async fn main() -> Result<()> {
     // Shutdown
     router.shutdown().await.e()?;
     Ok(())
-}
-
-async fn subscribe_loop(mut receiver: GossipReceiver) -> Result<()> {
-    // init a peerid -> name hashmap
-    let mut names = HashMap::new();
-    while let Some(event) = receiver.try_next().await? {
-        if let Event::Received(msg) = event {
-            let (from, message) = SignedMessage::verify_and_decode(&msg.content)?;
-            match message {
-                Message::AboutMe { name } => {
-                    names.insert(from, name.clone());
-                    println!("> {} is now known as {}", from.fmt_short(), name);
-                }
-                Message::Message { text } => {
-                    let name = names
-                        .get(&from)
-                        .map_or_else(|| from.fmt_short(), String::to_string);
-                    println!("{name}: {text}");
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
-fn input_loop(line_tx: tokio::sync::mpsc::Sender<String>) -> Result<()> {
-    let mut buffer = String::new();
-    let stdin = std::io::stdin(); // We get `Stdin` here.
-    loop {
-        stdin.read_line(&mut buffer).e()?;
-        line_tx.blocking_send(buffer.clone()).e()?;
-        buffer.clear();
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct SignedMessage {
-    from: PublicKey,
-    data: Bytes,
-    signature: Signature,
-}
-
-impl SignedMessage {
-    pub fn verify_and_decode(bytes: &[u8]) -> Result<(PublicKey, Message)> {
-        let signed_message: Self = postcard::from_bytes(bytes).e()?;
-        let key: PublicKey = signed_message.from;
-        key.verify(&signed_message.data, &signed_message.signature)
-            .e()?;
-        let message: Message = postcard::from_bytes(&signed_message.data).e()?;
-        Ok((signed_message.from, message))
-    }
-
-    pub fn sign_and_encode(secret_key: &SecretKey, message: &Message) -> Result<Bytes> {
-        let data: Bytes = postcard::to_stdvec(&message).e()?.into();
-        let signature = secret_key.sign(&data);
-        let from: PublicKey = secret_key.public();
-        let signed_message = Self {
-            from,
-            data,
-            signature,
-        };
-        let encoded = postcard::to_stdvec(&signed_message).e()?;
-        Ok(encoded.into())
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-enum Message {
-    AboutMe { name: String },
-    Message { text: String },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Ticket {
-    topic: TopicId,
-    peers: Vec<NodeAddr>,
-}
-impl Ticket {
-    /// Deserializes from bytes.
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        postcard::from_bytes(bytes).e()
-    }
-    /// Serializes to bytes.
-    pub fn to_bytes(&self) -> Vec<u8> {
-        postcard::to_stdvec(self).expect("postcard::to_stdvec is infallible")
-    }
-}
-
-/// Serializes to base32.
-impl fmt::Display for Ticket {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut text = data_encoding::BASE32_NOPAD.encode(&self.to_bytes()[..]);
-        text.make_ascii_lowercase();
-        write!(f, "{text}")
-    }
-}
-
-/// Deserializes from base32.
-impl FromStr for Ticket {
-    type Err = n0_snafu::Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let bytes = data_encoding::BASE32_NOPAD
-            .decode(s.to_ascii_uppercase().as_bytes())
-            .e()?;
-        Self::from_bytes(&bytes)
-    }
 }
 
 // helpers

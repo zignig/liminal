@@ -1,5 +1,6 @@
 use rocket::http::ContentType;
 use rust_embed::Embed;
+use rocket::get;
 
 use std::borrow::Cow;
 use std::ffi::OsStr;

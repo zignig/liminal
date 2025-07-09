@@ -2,9 +2,24 @@
 
 {% block content %}
 <h1> Index content</h1>
+
 <form id="new-message">
-    <input class="input" type="text" name="username" id="username" maxlength="19" placeholder="guest" autocomplete="off">
-    <input class="input" type="text" name="message" id="message" autocomplete="off" placeholder="Send a message..." autofocus>
-    <button type="submit" id="send">Send</button>
+    <div class="field">
+        <div class="control">
+            <input class="input" type="text" name="username" id="username" maxlength="19" placeholder="guest"
+                autocomplete="off">
+        </div>
+    </div>
+    <div class="field">
+        <div class="control">
+            <input class="input" type="text" name="message" id="message" autocomplete="off"
+                placeholder="Send a message..." autofocus>
+        </div>
+    </div>
+    <div class="field">
+        <div class="control">
+            <button class="button" type="submit" id="send">Send</button>
+        </div>
+    </div>
 </form>
 {% endblock %}

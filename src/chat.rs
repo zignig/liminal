@@ -1,0 +1,131 @@
+use std::{
+    collections::HashMap,
+    fmt,
+    net::{Ipv4Addr, SocketAddrV4},
+    str::FromStr,
+};
+
+use bytes::Bytes;
+use iroh::{NodeAddr, PublicKey, SecretKey};
+use iroh_gossip::{
+    api::{Event, GossipReceiver, GossipSender},
+    net::{Gossip, GOSSIP_ALPN},
+    proto::TopicId,
+};
+
+use ed25519_dalek::Signature;
+
+use n0_future::StreamExt;
+use serde::{Deserialize, Serialize};
+use n0_snafu::{Result, ResultExt};
+
+pub async fn subscribe_loop(mut receiver: GossipReceiver) -> Result<()> {
+    // init a peerid -> name hashmap
+    let mut names = HashMap::new();
+    while let Some(event) = receiver.try_next().await? {
+        if let Event::Received(msg) = event {
+            let (from, message) = SignedMessage::verify_and_decode(&msg.content)?;
+            match message {
+                Message::AboutMe { name } => {
+                    names.insert(from, name.clone());
+                    println!("> {} is now known as {}", from.fmt_short(), name);
+                }
+                Message::Message { text } => {
+                    let name = names
+                        .get(&from)
+                        .map_or_else(|| from.fmt_short(), String::to_string);
+                    println!("{name}: {text}");
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn input_loop(line_tx: tokio::sync::mpsc::Sender<String>) -> Result<()> {
+    let mut buffer = String::new();
+    let stdin = std::io::stdin(); // We get `Stdin` here.
+    loop {
+        stdin.read_line(&mut buffer).e()?;
+        line_tx.blocking_send(buffer.clone()).e()?;
+        buffer.clear();
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignedMessage {
+    from: PublicKey,
+    data: Bytes,
+    signature: Signature,
+}
+
+impl SignedMessage {
+    pub fn verify_and_decode(bytes: &[u8]) -> Result<(PublicKey, Message)> {
+        let signed_message: Self = postcard::from_bytes(bytes).e()?;
+        let key: PublicKey = signed_message.from;
+        key.verify(&signed_message.data, &signed_message.signature)
+            .e()?;
+        let message: Message = postcard::from_bytes(&signed_message.data).e()?;
+        Ok((signed_message.from, message))
+    }
+
+    pub fn sign_and_encode(secret_key: &SecretKey, message: &Message) -> Result<Bytes> {
+        let data: Bytes = postcard::to_stdvec(&message).e()?.into();
+        let signature = secret_key.sign(&data);
+        let from: PublicKey = secret_key.public();
+        let signed_message = Self {
+            from,
+            data,
+            signature,
+        };
+        let encoded = postcard::to_stdvec(&signed_message).e()?;
+        Ok(encoded.into())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Message {
+    AboutMe { name: String },
+    Message { text: String },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Ticket {
+    pub topic: TopicId,
+    pub peers: Vec<NodeAddr>,
+}
+
+impl Ticket {
+    /// Deserializes from bytes.
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        postcard::from_bytes(bytes).e()
+    }
+    /// Serializes to bytes.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        postcard::to_stdvec(self).expect("postcard::to_stdvec is infallible")
+    }
+}
+
+/// Serializes to base32.
+impl fmt::Display for Ticket {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut text = data_encoding::BASE32_NOPAD.encode(&self.to_bytes()[..]);
+        text.make_ascii_lowercase();
+        write!(f, "{text}")
+    }
+}
+
+/// Deserializes from base32.
+impl FromStr for Ticket {
+    type Err = n0_snafu::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let bytes = data_encoding::BASE32_NOPAD
+            .decode(s.to_ascii_uppercase().as_bytes())
+            .e()?;
+        Self::from_bytes(&bytes)
+    }
+}
+
+
+
+
