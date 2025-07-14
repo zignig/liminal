@@ -10,7 +10,8 @@ use bytes::Bytes;
 use chrono::Local;
 use iroh::{NodeAddr, PublicKey, SecretKey};
 use iroh_blobs::{
-    api::Store, format::collection::Collection, net_protocol::Blobs, store::fs::FsStore, BlobFormat, Hash, HashAndFormat
+    BlobFormat, Hash, HashAndFormat, api::Store, format::collection::Collection, hashseq::HashSeq,
+    net_protocol::Blobs, store::fs::FsStore,
 };
 use iroh_gossip::{
     api::{Event, GossipReceiver, GossipSender},
@@ -42,24 +43,45 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: Blobs) -> Resul
                     println!("{name}: {text}");
                 }
                 Message::Upkey { key } => {
-                    let conn = blobs
-                        .endpoint()
-                        .connect(msg.delivered_from, iroh_blobs::protocol::ALPN)
-                        .await?;
-                    let knf = HashAndFormat::new(key, BlobFormat::HashSeq);
-                    let local = blobs.store().remote().local(knf).await.expect("msg");
-                    if !local.is_complete(){
-                        println!("a new key {:?}", key);
-                        let r = blobs.store().remote().fetch(conn, knf).await?;
-                        println!("{:?}", r);
+                    let have = blobs.store().has(key).await.expect("no key");
+                    if !have {
+                        println!("Fetching key : {}", key);
+                        let conn = blobs
+                            .endpoint()
+                            .connect(msg.delivered_from, iroh_blobs::protocol::ALPN)
+                            .await?;
+                        // fetch  the root key
+                        blobs.store().remote().fetch(conn.clone(), key).await?;
+                        let bl = blobs.store().get_bytes(key).await?;
+                        let hs = HashSeq::try_from(bl).expect("hash fail");
+                        let meta = hs.into_iter().next().context("empty has seq")?;
+                        // fetch the meta data
+                        blobs.store().remote().fetch(conn.clone(), meta).await?;
+                        // tag it as collection
                         let dt = Local::now().to_rfc3339().to_owned();
                         blobs.store().tags().set(format!("col-{}", dt), key).await?;
-                        let col = Collection::load(key,blobs.store()).await.expect("woteva");
-                        for (s,_) in col { 
-                            println!("{}",s);
-                        }
+                        // Check that it is a collection
+                        Collection::load(key, blobs.store()).await.expect("woteva");
+                        // Just get the whole thing
 
+                        
+                        let knf = HashAndFormat::new(key, BlobFormat::HashSeq);
+                        let local = blobs.store().remote().local(knf).await.expect("msg");
+                        if !local.is_complete() {
+                            println!("a new key {:?}", key);
+                            let r = blobs.store().remote().fetch(conn, knf).await?;
+                            println!("{:?}", r);
+                            let dt = Local::now().to_rfc3339().to_owned();
+                            blobs.store().tags().set(format!("col-{}", dt), key).await?;
+                            let col = Collection::load(key, blobs.store()).await.expect("woteva");
+                            for (s, _) in col {
+                                println!("{}", s);
+                            }
+                        }
                     }
+                    // for (s, h) in col {
+                    //     println!("{} - {} ", s, h);
+                    // }
                 }
             }
         }
@@ -69,7 +91,6 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: Blobs) -> Resul
 
 pub async fn publish_loop(mut sender: GossipSender, blobs: Blobs, secret: SecretKey) -> Result<()> {
     loop {
-        tokio::time::sleep(Duration::from_secs(10)).await;
         let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
         while let Some(event) = t.next().await {
             match event {
@@ -83,6 +104,7 @@ pub async fn publish_loop(mut sender: GossipSender, blobs: Blobs, secret: Secret
             }
             // tokio::time::sleep(Duration::from_secs(1)).await;
         }
+        tokio::time::sleep(Duration::from_secs(20)).await;
     }
 }
 

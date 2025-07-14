@@ -149,7 +149,7 @@ async fn main() -> Result<()> {
         }
     };
 
-    let (sender, receiver) = gossip.subscribe_and_join(topic, peer_ids).await?.split();
+    let (sender, receiver) = gossip.subscribe(topic, peer_ids).await?.split();
     println!("> connected!");
 
     // subscribe and print loop
@@ -168,7 +168,7 @@ async fn main() -> Result<()> {
             .manage(blobs.clone())
             .mount(
                 "/",
-                routes![web::index, web::fixed::dist, web::message, web::tags],
+                routes![web::index, web::fixed::dist, web::files , web::coll],
             )
             .launch()
             .await;

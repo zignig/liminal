@@ -12,6 +12,8 @@ use n0_future::StreamExt;
 use walkdir::WalkDir;
 use chrono::Local;
 
+mod scanner;
+
 // Stolen from sendme and stripped.
 
 /// This function converts an already canonicalized path to a string.
@@ -66,6 +68,23 @@ pub fn canonicalized_path_to_string(
 /// If the input is a directory, the collection contains all the files in the
 /// directory.
 pub async fn import(path: PathBuf, db: &Store) -> anyhow::Result<()> {
+    let path = path.canonicalize()?;
+    anyhow::ensure!(path.exists(), "path {} does not exist", path.display());
+    // let root = path.parent().context("context get parent")?;
+    // walkdir also works for files, so we don't need to special case them
+    let files = WalkDir::new(path.clone()).into_iter();
+    for item in files{ 
+        if let Ok(dir_entry) = item {
+            if dir_entry.file_type().is_dir() {
+                println!("{}",dir_entry.path().display());
+            }
+            println!("\t{}",dir_entry.path().display());
+        }
+    }
+    Ok(())
+}
+
+pub async fn import_old(path: PathBuf, db: &Store) -> anyhow::Result<()> {
     let path = path.canonicalize()?;
     anyhow::ensure!(path.exists(), "path {} does not exist", path.display());
     let root = path.parent().context("context get parent")?;
