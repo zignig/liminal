@@ -1,14 +1,15 @@
 // This is an attempt to convert collections into a directory structure
 
-use std::{
-    path::PathBuf,
-    sync::Arc,
-};
+use std::{path::PathBuf, sync::Arc};
 
+use bytes::Bytes;
 use dashmap::DashMap;
 use fs_tree::FsTree;
-use iroh_blobs::{Hash, format::collection::Collection, net_protocol::Blobs};
+use iroh_blobs::{
+    BlobFormat, Hash, HashAndFormat, format::collection::Collection, net_protocol::Blobs,
+};
 use n0_future::StreamExt;
+use anyhow::{anyhow, Result};
 
 #[derive(Debug, Clone)]
 pub struct FileSet(Arc<Inner>);
@@ -21,8 +22,13 @@ pub struct Inner {
 
 #[derive(Debug, Clone)]
 pub enum Item {
-    Unloaded { hash: Hash },
-    Loaded { directories: FsTree , links : DashMap<String,Hash>},
+    Unloaded {
+        hash: Hash,
+    },
+    Loaded {
+        directories: FsTree,
+        links: DashMap<String, Hash>,
+    },
 }
 
 impl FileSet {
@@ -33,7 +39,7 @@ impl FileSet {
         }))
     }
 
-    pub async fn fill(&mut self) {
+    pub async fn fill(&self) {
         let mut tag_scan = self
             .0
             .blobs
@@ -62,19 +68,22 @@ impl FileSet {
                         let collection =
                             Collection::load(hash.clone(), self.0.blobs.store()).await?;
                         let mut dir = FsTree::new_dir();
-                        let links: DashMap<String,Hash> = DashMap::new();
+                        let links: DashMap<String, Hash> = DashMap::new();
                         for (path, hash) in collection {
                             // println!("{:?}", path);
                             dir = dir.merge(FsTree::from_path_text(&path));
-                            links.insert(path,hash);
+                            links.insert(path, hash);
                         }
                         *base = Item::Loaded {
                             directories: dir.clone(),
-                            links: links
+                            links: links,
                         };
                         dir
                     }
-                    Item::Loaded { directories , links: _ } => {
+                    Item::Loaded {
+                        directories,
+                        links: _,
+                    } => {
                         println!("it's already loaded ! ");
                         directories.clone()
                         // println!("{:#?}",directories.children())
@@ -95,6 +104,28 @@ impl FileSet {
         }
         Ok(None)
     }
+
+    pub async fn get_file(&self, root: String, path: &PathBuf) -> anyhow::Result<Bytes> {
+        if self.0.roots.contains_key(&root) {
+            if let Some(mut base) = self.0.roots.get_mut(&root) {
+                match base.value() {
+                    Item::Loaded { directories:_, links } => {
+                        if let Some(reference) = links.get(&path.display().to_string()) {
+                            let h = reference.value().clone();
+                            // let data = self.0.blobs.store().get_bytes(knf).await?;
+                            let data = self.0.blobs.store().get_bytes(h).await?;
+                            return Ok(data);
+                        }
+                    }
+                    Item::Unloaded { hash:_ } => {
+                        return  Err(anyhow!("should already be loaded"))
+                    }
+                }
+            }
+        }
+        Err(anyhow!("no  key!"))
+    }
+    
 
     pub fn list_roots(&self) -> Vec<String> {
         let mut items: Vec<String> = Vec::new();

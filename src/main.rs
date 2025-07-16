@@ -128,7 +128,7 @@ async fn main() -> Result<()> {
         _ => {}
     }
 
-    let mut fileset = store::FileSet::new(blobs.clone());
+    let fileset = store::FileSet::new(blobs.clone());
     fileset.fill().await;
 
     // setup router

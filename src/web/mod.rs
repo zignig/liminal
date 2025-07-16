@@ -1,3 +1,4 @@
+use std::io::Cursor;
 use std::path::PathBuf;
 // use std::path::PathBuf;
 use std::str::FromStr;
@@ -14,11 +15,13 @@ use rocket::State;
 use rocket::fairing::AdHoc;
 use rocket::form::Form;
 use rocket::get;
+use rocket::http::{ContentType, Status};
 use rocket::response::Responder;
+use rocket::response::Response;
 
 pub mod fixed;
 
-fn split_path(path: &PathBuf) -> (Vec<String>,Vec<String>) {
+fn split_path(path: &PathBuf) -> (Vec<String>, Vec<String>) {
     let v: Vec<String> = path
         .display()
         .to_string()
@@ -27,13 +30,13 @@ fn split_path(path: &PathBuf) -> (Vec<String>,Vec<String>) {
         .collect();
     // scan and bake
     let mut prefixes: Vec<String> = Vec::new();
-    let mut items: Vec<String>  = Vec::new();
-    for(index,name) in v.iter().enumerate(){
+    let mut items: Vec<String> = Vec::new();
+    for (index, name) in v.iter().enumerate() {
         let pref = v[0..index].join("/");
         prefixes.push(pref);
         items.push(name.to_string())
     }
-    (prefixes,items)
+    (prefixes, items)
 }
 
 #[get("/")]
@@ -80,9 +83,14 @@ pub struct BlobUpload<'v> {
 }
 
 #[post("/blob", data = "<web_message>")]
-pub async fn message<'r>(web_message: Form<BlobUpload<'_>>, blobs: &State<Blobs>) -> &'static str {
+pub async fn message<'r>(
+    web_message: Form<BlobUpload<'_>>,
+    blobs: &State<Blobs>,
+    fileSet: &State<FileSet>,
+) -> &'static str {
     let encoded = web_message.message.trim();
     let r = get_collection(encoded, blobs).await;
+    fileSet.fill().await;
     println!("Trans info {:#?}", r);
     "should be an error"
 }
@@ -94,7 +102,7 @@ pub async fn files<'r>(fileset: &State<FileSet>) -> impl Responder<'r, 'static> 
         items: coll,
         path: "".to_string(),
         segments: vec![],
-        prefixes: vec![]
+        prefixes: vec![],
     }
 }
 
@@ -112,12 +120,12 @@ pub async fn coll<'r>(collection: &str, fileset: &State<FileSet>) -> impl Respon
     }
     let mut path = PathBuf::new();
     path.push(&collection);
-    let (pref,items )= split_path(&path);
+    let (pref, items) = split_path(&path);
     FilePageTemplate {
         items: coll,
         path: path.display().to_string(),
         segments: items,
-        prefixes: pref
+        prefixes: pref,
     }
 }
 
@@ -131,8 +139,22 @@ pub async fn inner_files<'r>(
     let mut items = Vec::new();
     match res {
         Ok(op) => {
-            if let Some(r) = op {
-                items = r;
+            match op {
+                Some(r) => items = r,
+                None => {
+                    // Means no children , is a file
+                    let fr = fileset
+                        .get_file(collection.to_string(), &path)
+                        .await
+                        .unwrap();
+                    // println!("{:?}",fr);
+                    let response = Response::build()
+                        .status(Status::Accepted)
+                        .header(ContentType::Plain)
+                        .sized_body(fr.len(), Cursor::new(fr))
+                        .finalize();
+                    //return response;
+                }
             }
         }
         Err(_) => {}
@@ -141,13 +163,13 @@ pub async fn inner_files<'r>(
     full_path.push(&collection);
     full_path.push(&path);
 
-    let (pref,entries )= split_path(&full_path);
-    
+    let (pref, entries) = split_path(&full_path);
+
     FilePageTemplate {
         items: items,
         path: full_path.display().to_string(),
         segments: entries,
-        prefixes: pref
+        prefixes: pref,
     }
 }
 
