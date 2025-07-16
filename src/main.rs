@@ -6,7 +6,7 @@ use std::{
 //use futures_lite::StreamExt;
 use clap::Parser;
 use iroh::{Endpoint, RelayMode, SecretKey};
-use iroh_blobs::{format::collection::Collection, store::fs::FsStore, ALPN as BLOBS_ALPN};
+use iroh_blobs::{ALPN as BLOBS_ALPN, format::collection::Collection, store::fs::FsStore};
 use iroh_gossip::{
     net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
@@ -16,8 +16,8 @@ use n0_future::task;
 use n0_snafu::{Result, ResultExt};
 use n0_watcher::Watcher;
 use snafu::whatever;
-use tokio::signal::ctrl_c;
 use std::path::PathBuf;
+use tokio::signal::ctrl_c;
 //use tokio::{signal::ctrl_c, sync::mpsc};
 
 mod chat;
@@ -153,8 +153,12 @@ async fn main() -> Result<()> {
     println!("> connected!");
 
     // subscribe and print loop
-    task::spawn(chat::subscribe_loop(receiver,blobs.clone()));
-    task::spawn(chat::publish_loop(sender,blobs.clone(),endpoint.secret_key().clone()));
+    task::spawn(chat::subscribe_loop(receiver, blobs.clone()));
+    task::spawn(chat::publish_loop(
+        sender,
+        blobs.clone(),
+        endpoint.secret_key().clone(),
+    ));
     if args.web {
         println!("starting web server ");
         // start the web server
@@ -168,7 +172,13 @@ async fn main() -> Result<()> {
             .manage(blobs.clone())
             .mount(
                 "/",
-                routes![web::index, web::fixed::dist, web::files , web::coll],
+                routes![
+                    web::index,
+                    web::fixed::dist,
+                    web::files,
+                    web::message,
+                    web::coll
+                ],
             )
             .launch()
             .await;

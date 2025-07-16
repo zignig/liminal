@@ -63,21 +63,20 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: Blobs) -> Resul
                         // Check that it is a collection
                         Collection::load(key, blobs.store()).await.expect("woteva");
                         // Just get the whole thing
-
                         
-                        let knf = HashAndFormat::new(key, BlobFormat::HashSeq);
-                        let local = blobs.store().remote().local(knf).await.expect("msg");
-                        if !local.is_complete() {
-                            println!("a new key {:?}", key);
-                            let r = blobs.store().remote().fetch(conn, knf).await?;
-                            println!("{:?}", r);
-                            let dt = Local::now().to_rfc3339().to_owned();
-                            blobs.store().tags().set(format!("col-{}", dt), key).await?;
-                            let col = Collection::load(key, blobs.store()).await.expect("woteva");
-                            for (s, _) in col {
-                                println!("{}", s);
-                            }
-                        }
+                        // let knf = HashAndFormat::new(key, BlobFormat::HashSeq);
+                        // let local = blobs.store().remote().local(knf).await.expect("msg");
+                        // if !local.is_complete() {
+                        //     println!("a new key {:?}", key);
+                        //     let r = blobs.store().remote().fetch(conn, knf).await?;
+                        //     println!("{:?}", r);
+                        //     let dt = Local::now().to_rfc3339().to_owned();
+                        //     blobs.store().tags().set(format!("col-{}", dt), key).await?;
+                        //     let col = Collection::load(key, blobs.store()).await.expect("woteva");
+                        //     for (s, _) in col {
+                        //         println!("{}", s);
+                        //     }
+                        // }
                     }
                     // for (s, h) in col {
                     //     println!("{} - {} ", s, h);

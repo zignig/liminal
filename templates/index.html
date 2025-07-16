@@ -2,18 +2,12 @@
 
 {% block content %}
 <h1> Index content</h1>
-
-<form id="new-message">
+<hr>
+<form id="blob-upload">
     <div class="field">
+        <label class="label">Upload Blob</label>
         <div class="control">
-            <input class="input" type="text" name="username" id="username" maxlength="19" placeholder="guest"
-                autocomplete="off">
-        </div>
-    </div>
-    <div class="field">
-        <div class="control">
-            <input class="input" type="text" name="message" id="message" autocomplete="off"
-                placeholder="Send a message..." autofocus>
+            <textarea name="blobtext" id="blobtext" class="textarea"></textarea>
         </div>
     </div>
     <div class="field">

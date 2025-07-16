@@ -1,29 +1,21 @@
-// Setup for the chat stuff
 
-var STATE = {
-    room: "lobby",
-    rooms: {},
-    connected: true,
-}
 // Set up the form handler.
-let newMessageForm = document.getElementById('new-message');
-let messageField = newMessageForm.querySelector("#message");
-let usernameField = newMessageForm.querySelector("#username");
+let blobForm = document.getElementById('blob-upload');
+let messageField = blobForm.querySelector("#blobtext");
 
-newMessageForm.addEventListener("submit", (e) => {
+blobForm.addEventListener("submit", (e) => {
     e.preventDefault();
 
-    const room = STATE.room;
     const message = messageField.value;
-    const username = usernameField.value || "guest";
-    if (!message || !username) return;
+    fetch("/blob", {
+        method: "POST",
+        body: new URLSearchParams({ message }),
+    }).then((response) => {
+        console.log(response.body);
+        if (response.ok) {
+            messageField.value = "";
+            messageField.className = "textarea is-success";
+        }
+    });
 
-    if (STATE.connected) {
-        fetch("/message", {
-            method: "POST",
-            body: new URLSearchParams({ room, username, message }),
-        }).then((response) => {
-            if (response.ok) messageField.value = "";
-        });
-    }
 })
