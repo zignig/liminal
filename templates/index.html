@@ -16,4 +16,10 @@
         </div>
     </div>
 </form>
+<hr>
+<div class="block">
+        {% for node in nodes %}
+        <button class="button">{{node}}</button>
+        {% endfor %}
+</div>
 {% endblock %}

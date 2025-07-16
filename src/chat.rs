@@ -107,15 +107,6 @@ pub async fn publish_loop(mut sender: GossipSender, blobs: Blobs, secret: Secret
     }
 }
 
-// pub fn input_loop(line_tx: tokio::sync::mpsc::Sender<String>) -> Result<()> {
-//     let mut buffer = String::new();
-//     let stdin = std::io::stdin(); // We get `Stdin` here.
-//     loop {
-//         stdin.read_line(&mut buffer).e()?;
-//         line_tx.blocking_send(buffer.clone()).e()?;
-//         buffer.clear();
-//     }
-// }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignedMessage {

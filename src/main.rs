@@ -27,6 +27,7 @@ mod importer;
 mod replicate;
 mod templates;
 mod web;
+mod store;
 
 use chat::Message;
 use chat::Ticket;
@@ -130,6 +131,9 @@ async fn main() -> Result<()> {
         _ => {}
     }
 
+    let mut fileset = store::FileSet::new(blobs.clone());
+    fileset.fill().await;
+
     // setup router
     let router = iroh::protocol::Router::builder(endpoint.clone())
         .accept(GOSSIP_ALPN, gossip.clone())
@@ -169,17 +173,9 @@ async fn main() -> Result<()> {
 
         let _result = rocket::custom(figment)
             // .manage(sender)
+            .manage(fileset.clone())
             .manage(blobs.clone())
-            .mount(
-                "/",
-                routes![
-                    web::index,
-                    web::fixed::dist,
-                    web::files,
-                    web::message,
-                    web::coll
-                ],
-            )
+            .attach(web::stage())
             .launch()
             .await;
     } else {

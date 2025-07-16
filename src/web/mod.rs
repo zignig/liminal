@@ -1,10 +1,11 @@
-use std::any;
+use std::path::PathBuf;
+// use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::chat::Ticket;
+use crate::store::FileSet;
 use crate::templates::FilePageTemplate;
 use crate::templates::HomePageTemplate;
-use crate::web;
+use crate::templates::NotesPageTemplate;
 use chrono::Local;
 use iroh_blobs::HashAndFormat;
 use iroh_blobs::format::collection::Collection;
@@ -12,15 +13,23 @@ use iroh_blobs::net_protocol::Blobs;
 use iroh_blobs::ticket::BlobTicket;
 use n0_future::StreamExt;
 use rocket::State;
+use rocket::fairing::AdHoc;
 use rocket::form::Form;
 use rocket::get;
+use rocket::request::FromSegments;
 use rocket::response::Responder;
 
 pub mod fixed;
 
 #[get("/")]
-pub fn index<'r>() -> impl Responder<'r, 'static> {
-    HomePageTemplate {}
+pub fn index<'r>(blobs: &State<Blobs>) -> impl Responder<'r, 'static> {
+    let remotes = blobs.endpoint().remote_info_iter();
+    let mut nodes: Vec<String> = Vec::new();
+    for i in remotes {
+        println!("{:#?}", i);
+        nodes.push(i.node_id.fmt_short())
+    }
+    HomePageTemplate { nodes: nodes }
 }
 
 pub async fn get_collection(encoded: &str, blobs: &Blobs) -> anyhow::Result<()> {
@@ -64,32 +73,72 @@ pub async fn message<'r>(web_message: Form<BlobUpload<'_>>, blobs: &State<Blobs>
 }
 
 #[get("/files")]
-pub async fn files<'r>(blobs: &State<Blobs>) -> impl Responder<'r, 'static> {
-    let mut tag_scan = blobs.store().tags().list_prefix("col").await.unwrap();
-    let mut coll: Vec<String> = Vec::new();
-    while let Some(event) = tag_scan.next().await {
-        let tag = event.unwrap();
-        let tag_name = str::from_utf8(&tag.name.0).unwrap().to_owned();
-        //let tag_name = tag.name.to_string();
-        println!("{}", &tag_name);
-        coll.push(tag_name);
-    }
+pub async fn files<'r>(fileset: &State<FileSet>) -> impl Responder<'r, 'static> {
+    let coll = fileset.list_roots();
 
-    FilePageTemplate { items: coll }
+    FilePageTemplate {
+        items: coll,
+        path: "".to_string(),
+    }
 }
 
-#[get("/files/<item>")]
-pub async fn coll<'r>(item: String, blobs: &State<Blobs>) -> impl Responder<'r, 'static> {
-    let mut coll: Vec<String> = Vec::new();
-    if let Ok(item) = blobs.store().tags().get(item).await {
-        if let Some(val) = item {
-            if let Ok(c) = Collection::load(val.hash, blobs.store()).await {
-                for (item, _) in c {
-                    coll.push(item)
-                }
+#[get("/files/<collection>")]
+pub async fn coll<'r>(collection: &str, fileset: &State<FileSet>) -> impl Responder<'r, 'static> {
+    let res = fileset.get(collection.to_string(), &PathBuf::new()).await;
+    let mut coll = Vec::new();
+    match res {
+        Ok(op) => {
+            if let Some(r) = op {
+                coll = r;
             }
         }
+        Err(_) => {}
     }
+    let mut path = PathBuf::new();
+    path.push(&collection);
 
-    FilePageTemplate { items: coll }
+    FilePageTemplate {
+        items: coll,
+        path: path.display().to_string(),
+    }
+}
+
+#[get("/files/<collection>/<path..>", rank = 2)]
+pub async fn inner_files<'r>(
+    collection: &str,
+    path: PathBuf,
+    fileset: &State<FileSet>,
+) -> impl Responder<'r, 'static> {
+    let res = fileset.get(collection.to_string(), &path).await;
+    let mut items = Vec::new();
+    match res {
+        Ok(op) => {
+            if let Some(r) = op {
+                items = r;
+            }
+        }
+        Err(_) => {}
+    }
+    let mut full_path = PathBuf::new();
+    full_path.push(&collection);
+    full_path.push(&path);
+
+    FilePageTemplate {
+        items: items,
+        path: full_path.display().to_string(),
+    }
+}
+
+#[get("/notes")]
+pub fn notes<'r>() -> impl Responder<'r, 'static> {
+    NotesPageTemplate {}
+}
+
+pub fn stage() -> AdHoc {
+    AdHoc::on_ignite("Web interface", |rocket| async {
+        rocket.mount(
+            "/",
+            routes![index, coll, notes, files, message, fixed::dist, inner_files],
+        )
+    })
 }
