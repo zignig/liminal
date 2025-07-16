@@ -1,9 +1,7 @@
 // This is an attempt to convert collections into a directory structure
 
 use std::{
-    ops::{Deref, DerefMut},
     path::PathBuf,
-    str::FromStr,
     sync::Arc,
 };
 
@@ -24,7 +22,7 @@ pub struct Inner {
 #[derive(Debug, Clone)]
 pub enum Item {
     Unloaded { hash: Hash },
-    Loaded { directories: FsTree },
+    Loaded { directories: FsTree , links : DashMap<String,Hash>},
 }
 
 impl FileSet {
@@ -64,16 +62,19 @@ impl FileSet {
                         let collection =
                             Collection::load(hash.clone(), self.0.blobs.store()).await?;
                         let mut dir = FsTree::new_dir();
-                        for (path, _) in collection {
+                        let links: DashMap<String,Hash> = DashMap::new();
+                        for (path, hash) in collection {
                             // println!("{:?}", path);
-                            dir = dir.merge(FsTree::from_path_text(path))
+                            dir = dir.merge(FsTree::from_path_text(&path));
+                            links.insert(path,hash);
                         }
                         *base = Item::Loaded {
                             directories: dir.clone(),
+                            links: links
                         };
                         dir
                     }
-                    Item::Loaded { directories } => {
+                    Item::Loaded { directories , links: _ } => {
                         println!("it's already loaded ! ");
                         directories.clone()
                         // println!("{:#?}",directories.children())

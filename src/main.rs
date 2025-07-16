@@ -6,12 +6,11 @@ use std::{
 //use futures_lite::StreamExt;
 use clap::Parser;
 use iroh::{Endpoint, RelayMode, SecretKey};
-use iroh_blobs::{ALPN as BLOBS_ALPN, format::collection::Collection, store::fs::FsStore};
+use iroh_blobs::{ALPN as BLOBS_ALPN, store::fs::FsStore};
 use iroh_gossip::{
     net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
-use n0_future::StreamExt;
 use n0_future::task;
 use n0_snafu::{Result, ResultExt};
 use n0_watcher::Watcher;
@@ -29,11 +28,9 @@ mod templates;
 mod web;
 mod store;
 
-use chat::Message;
 use chat::Ticket;
 use cli::Command;
 
-use crate::chat::SignedMessage;
 
 #[macro_use]
 extern crate rocket;

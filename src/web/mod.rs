@@ -8,18 +8,33 @@ use crate::templates::HomePageTemplate;
 use crate::templates::NotesPageTemplate;
 use chrono::Local;
 use iroh_blobs::HashAndFormat;
-use iroh_blobs::format::collection::Collection;
 use iroh_blobs::net_protocol::Blobs;
 use iroh_blobs::ticket::BlobTicket;
-use n0_future::StreamExt;
 use rocket::State;
 use rocket::fairing::AdHoc;
 use rocket::form::Form;
 use rocket::get;
-use rocket::request::FromSegments;
 use rocket::response::Responder;
 
 pub mod fixed;
+
+fn split_path(path: &PathBuf) -> (Vec<String>,Vec<String>) {
+    let v: Vec<String> = path
+        .display()
+        .to_string()
+        .split("/")
+        .map(|v| v.to_string())
+        .collect();
+    // scan and bake
+    let mut prefixes: Vec<String> = Vec::new();
+    let mut items: Vec<String>  = Vec::new();
+    for(index,name) in v.iter().enumerate(){
+        let pref = v[0..index].join("/");
+        prefixes.push(pref);
+        items.push(name.to_string())
+    }
+    (prefixes,items)
+}
 
 #[get("/")]
 pub fn index<'r>(blobs: &State<Blobs>) -> impl Responder<'r, 'static> {
@@ -75,10 +90,11 @@ pub async fn message<'r>(web_message: Form<BlobUpload<'_>>, blobs: &State<Blobs>
 #[get("/files")]
 pub async fn files<'r>(fileset: &State<FileSet>) -> impl Responder<'r, 'static> {
     let coll = fileset.list_roots();
-
     FilePageTemplate {
         items: coll,
         path: "".to_string(),
+        segments: vec![],
+        prefixes: vec![]
     }
 }
 
@@ -96,10 +112,12 @@ pub async fn coll<'r>(collection: &str, fileset: &State<FileSet>) -> impl Respon
     }
     let mut path = PathBuf::new();
     path.push(&collection);
-
+    let (pref,items )= split_path(&path);
     FilePageTemplate {
         items: coll,
         path: path.display().to_string(),
+        segments: items,
+        prefixes: pref
     }
 }
 
@@ -123,9 +141,13 @@ pub async fn inner_files<'r>(
     full_path.push(&collection);
     full_path.push(&path);
 
+    let (pref,entries )= split_path(&full_path);
+    
     FilePageTemplate {
         items: items,
         path: full_path.display().to_string(),
+        segments: entries,
+        prefixes: pref
     }
 }
 

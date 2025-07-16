@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
     fmt,
-    net::{Ipv4Addr, SocketAddrV4},
     str::FromStr,
     time::Duration,
 };
@@ -10,12 +9,11 @@ use bytes::Bytes;
 use chrono::Local;
 use iroh::{NodeAddr, PublicKey, SecretKey};
 use iroh_blobs::{
-    BlobFormat, Hash, HashAndFormat, api::Store, format::collection::Collection, hashseq::HashSeq,
-    net_protocol::Blobs, store::fs::FsStore,
+    Hash, format::collection::Collection, hashseq::HashSeq,
+    net_protocol::Blobs,
 };
 use iroh_gossip::{
     api::{Event, GossipReceiver, GossipSender},
-    net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
 
