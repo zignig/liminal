@@ -21,8 +21,6 @@ use tokio::signal::ctrl_c;
 
 mod chat;
 mod cli;
-// mod config;
-mod importer;
 mod replicate;
 mod templates;
 mod web;
@@ -64,10 +62,10 @@ async fn main() -> Result<()> {
         Some(key) => key.parse()?,
     };
 
-    println!(
-        "> our secret key: {}",
-        data_encoding::HEXLOWER.encode(&secret_key.to_bytes())
-    );
+    // println!(
+    //     "> our secret key: {}",
+    //     data_encoding::HEXLOWER.encode(&secret_key.to_bytes())
+    // );
 
     // configure our relay map
     let relay_mode = match (args.no_relay, args.relay) {
@@ -108,25 +106,8 @@ async fn main() -> Result<()> {
     println!("Data store : {}", path.display());
 
     let store = FsStore::load(path).await.unwrap();
+
     let blobs = iroh_blobs::net_protocol::Blobs::new(&store, endpoint.clone(), None);
-    match args.command {
-        Command::Upload { path } => {
-            if let Some(p) = path {
-                println!("UPLOAD ! -- {:?}", p.display());
-                let good = importer::import(p, &store).await;
-                match good {
-                    Ok(_) => println!("all good"),
-                    Err(e) => println!("{:?}", e),
-                }
-            }
-            // if let Some(p) = path {
-            //     let f = store.add_path(&p).await?;
-            //     println!("{:#?}", f);
-            //     store.tags().set(p.display().to_string(), f).await?;
-            // }
-        }
-        _ => {}
-    }
 
     let fileset = store::FileSet::new(blobs.clone());
     fileset.fill().await;
@@ -176,20 +157,6 @@ async fn main() -> Result<()> {
             .launch()
             .await;
     } else {
-        // spawn an input thread that reads stdin
-        // not using tokio here because they recommend this for "technical reasons"
-        // let (line_tx, mut line_rx) = tokio::sync::mpsc::channel(1);
-        // std::thread::spawn(move || chat::input_loop(line_tx));
-
-        // // // broadcast each line we type
-        // println!("> type a message and hit enter to broadcast...");
-        // while let Some(text) = line_rx.recv().await {
-        //     let message = Message::Message { text: text.clone() };
-        //     let encoded_message = SignedMessage::sign_and_encode(endpoint.secret_key(), &message)?;
-        //     sender.broadcast(encoded_message).await?;
-        //     println!("> sent: {text}");
-        // }
-
         ctrl_c().await.unwrap();
     }
     // Shutdown

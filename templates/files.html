@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<nav class="breadcrumb" aria-label="breadcrumbs">
+<nav class="breadcrumb is-medium" aria-label="breadcrumbs">
     <ul>
         {% for seg in segments %}
         <li><a href="/files/{{ prefixes[loop.index0]}}">{{ seg }} </a></li>
