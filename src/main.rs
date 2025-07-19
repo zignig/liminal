@@ -19,14 +19,13 @@ use std::path::PathBuf;
 use tokio::signal::ctrl_c;
 //use tokio::{signal::ctrl_c, sync::mpsc};
 
-mod chat;
-mod cli;
 mod replicate;
+mod cli;
 mod templates;
 mod web;
 mod store;
 
-use chat::Ticket;
+use replicate::Ticket;
 use cli::Command;
 
 
@@ -35,6 +34,7 @@ extern crate rocket;
 
 #[rocket::main]
 async fn main() -> Result<()> {
+    // TODO: make this shorter
     tracing_subscriber::fmt::init();
     let args = cli::Args::parse();
 
@@ -90,6 +90,7 @@ async fn main() -> Result<()> {
     for i in endpoint.remote_info_iter() {
         println!("{:?}", i);
     }
+
     // create the gossip protocol
     let gossip = Gossip::builder().spawn(endpoint.clone());
 
@@ -99,6 +100,7 @@ async fn main() -> Result<()> {
         let peers = peers.iter().cloned().chain([me]).collect();
         Ticket { topic, peers }
     };
+
     println!("> ticket to join us: {ticket}");
 
     println!("blobs!");
@@ -134,13 +136,16 @@ async fn main() -> Result<()> {
     let (sender, receiver) = gossip.subscribe(topic, peer_ids).await?.split();
     println!("> connected!");
 
+
+    // Move all this into the replicate 
     // subscribe and print loop
-    task::spawn(chat::subscribe_loop(receiver, blobs.clone()));
-    task::spawn(chat::publish_loop(
+    task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
+    task::spawn(replicate::publish_loop(
         sender,
         blobs.clone(),
         endpoint.secret_key().clone(),
     ));
+
     if args.web {
         println!("starting web server ");
         // start the web server
