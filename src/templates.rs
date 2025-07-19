@@ -22,3 +22,16 @@ pub struct FilePageTemplate{
 #[template(path = "notes.html")]
 pub struct NotesPageTemplate {
 }
+
+
+#[derive(Template, WebTemplate)]
+#[template(path = "network.html")]
+pub struct NetworkPageTemplate {
+    pub nodes: Vec<String>,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "gltfview.html")]
+pub struct GltfPageTemplate {
+    path: String
+}

@@ -2,14 +2,12 @@
 
 use std::{path::PathBuf, sync::Arc};
 
+use anyhow::{Result, anyhow};
 use bytes::Bytes;
 use dashmap::DashMap;
 use fs_tree::FsTree;
-use iroh_blobs::{
-    BlobFormat, Hash, HashAndFormat, format::collection::Collection, net_protocol::Blobs,
-};
+use iroh_blobs::{Hash, format::collection::Collection, net_protocol::Blobs};
 use n0_future::StreamExt;
-use anyhow::{anyhow, Result};
 
 #[derive(Debug, Clone)]
 pub struct FileSet(Arc<Inner>);
@@ -27,7 +25,7 @@ pub enum Item {
     },
     Loaded {
         directories: FsTree,
-        links: DashMap<String, Hash>,
+        links: DashMap<String, Hash>, 
     },
 }
 
@@ -51,11 +49,13 @@ impl FileSet {
         while let Some(event) = tag_scan.next().await {
             let tag = event.unwrap();
             let tag_name = str::from_utf8(&tag.name.0).unwrap().to_owned();
-            //let tag_name = tag.name.to_string();
-            println!("{}", &tag_name);
-            self.0
-                .roots
-                .insert(tag_name, Item::Unloaded { hash: tag.hash });
+            if !self.0.roots.contains_key(&tag_name) {
+                //let tag_name = tag.name.to_string();
+                println!("{}", &tag_name);
+                self.0
+                    .roots
+                    .insert(tag_name, Item::Unloaded { hash: tag.hash });
+            }
         }
     }
 
@@ -84,7 +84,7 @@ impl FileSet {
                         directories,
                         links: _,
                     } => {
-                        println!("it's already loaded ! ");
+                        // println!("it's already loaded ! ");
                         directories.clone()
                         // println!("{:#?}",directories.children())
                         // get the path and update the map
@@ -92,11 +92,11 @@ impl FileSet {
                     }
                 };
                 if let Some(dir) = the_dir.get(path.clone()) {
-                    println!("{}", path.display().to_string());
-                    println!("{:#?}", dir.children());
+                    // println!("{}", path.display().to_string());
+                    // println!("{:#?}", dir.children());
                     if let Some(d) = dir.children() {
                         let r: Vec<String> = d.keys().map(|f| f.display().to_string()).collect();
-                        println!("{:?}", r);
+                        // println!("{:?}", r);
                         return Ok(Some(r));
                     }
                 }
@@ -109,7 +109,10 @@ impl FileSet {
         if self.0.roots.contains_key(&root) {
             if let Some(mut base) = self.0.roots.get_mut(&root) {
                 match base.value() {
-                    Item::Loaded { directories:_, links } => {
+                    Item::Loaded {
+                        directories: _,
+                        links,
+                    } => {
                         if let Some(reference) = links.get(&path.display().to_string()) {
                             let h = reference.value().clone();
                             // let data = self.0.blobs.store().get_bytes(knf).await?;
@@ -117,21 +120,19 @@ impl FileSet {
                             return Ok(data);
                         }
                     }
-                    Item::Unloaded { hash:_ } => {
-                        return  Err(anyhow!("should already be loaded"))
-                    }
+                    Item::Unloaded { hash: _ } => return Err(anyhow!("should already be loaded")),
                 }
             }
         }
         Err(anyhow!("no  key!"))
     }
-    
 
     pub fn list_roots(&self) -> Vec<String> {
-        let mut items: Vec<String> = Vec::new();
-        for a in self.0.roots.iter() {
-            items.push(a.key().to_string());
-        }
-        items
+        self.0.roots.iter().map(|k| k.key().to_string()).collect()
+        // let mut items: Vec<String> = Vec::new();
+        // for a in self.0.roots.iter() {
+        //     items.push(a.key().to_string());
+        // }
+        // items
     }
 }

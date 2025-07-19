@@ -4,9 +4,9 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use crate::store::FileSet;
-use crate::templates::FilePageTemplate;
-use crate::templates::HomePageTemplate;
-use crate::templates::NotesPageTemplate;
+use crate::templates::{
+    FilePageTemplate, HomePageTemplate, NetworkPageTemplate, NotesPageTemplate,
+};
 use chrono::Local;
 use iroh_blobs::HashAndFormat;
 use iroh_blobs::net_protocol::Blobs;
@@ -44,7 +44,6 @@ pub fn index<'r>(blobs: &State<Blobs>) -> impl Responder<'r, 'static> {
     let remotes = blobs.endpoint().remote_info_iter();
     let mut nodes: Vec<String> = Vec::new();
     for i in remotes {
-        println!("{:#?}", i);
         nodes.push(i.node_id.fmt_short())
     }
     HomePageTemplate { nodes: nodes }
@@ -171,7 +170,6 @@ pub async fn inner_files<'r>(
         segments: entries,
         prefixes: pref,
     }
-
 }
 
 #[get("/notes")]
@@ -179,11 +177,25 @@ pub fn notes<'r>() -> impl Responder<'r, 'static> {
     NotesPageTemplate {}
 }
 
+#[get("/network")]
+pub fn network<'r>() -> impl Responder<'r, 'static> {
+    NetworkPageTemplate { nodes: vec![]}
+}
+
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("Web interface", |rocket| async {
         rocket.mount(
             "/",
-            routes![index, coll, notes, files, message, fixed::dist, inner_files],
+            routes![
+                index,
+                coll,
+                notes,
+                files,
+                message,
+                fixed::dist,
+                inner_files,
+                network
+            ],
         )
     })
 }

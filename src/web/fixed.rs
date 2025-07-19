@@ -33,7 +33,6 @@ impl<'r> Responder<'r, 'static> for CacheControl {
             .header(self.content_type)
             .raw_header("Cache-Control", "max-age=86400")
             .ok();
-        print!("{:#?}",val);
         val
     }
 }
