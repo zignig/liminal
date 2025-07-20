@@ -80,7 +80,8 @@ async fn main() -> Result<()> {
     // build our magic endpoint
     let endpoint = Endpoint::builder()
         .secret_key(secret_key)
-        .relay_mode(relay_mode)
+        // .relay_mode(relay_mode)
+        .discovery_local_network()
         .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, args.bind_port))
         .bind()
         .await?;
