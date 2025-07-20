@@ -6,7 +6,7 @@ use anyhow::{Result, anyhow};
 use bytes::Bytes;
 use dashmap::DashMap;
 use fs_tree::FsTree;
-use iroh_blobs::{Hash, format::collection::Collection, net_protocol::Blobs};
+use iroh_blobs::{format::collection::Collection, BlobsProtocol, Hash};
 use n0_future::StreamExt;
 
 #[derive(Debug, Clone)]
@@ -14,7 +14,7 @@ pub struct FileSet(Arc<Inner>);
 
 #[derive(Debug, Clone)]
 pub struct Inner {
-    blobs: Blobs,
+    blobs: BlobsProtocol,
     roots: DashMap<String, Item>,
 }
 
@@ -25,12 +25,12 @@ pub enum Item {
     },
     Loaded {
         directories: FsTree,
-        links: DashMap<String, Hash>, 
+        links: DashMap<String, Hash>,
     },
 }
 
 impl FileSet {
-    pub fn new(blobs: Blobs) -> Self {
+    pub fn new(blobs: BlobsProtocol) -> Self {
         Self(Arc::new(Inner {
             blobs: blobs,
             roots: DashMap::new(),

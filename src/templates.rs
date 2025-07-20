@@ -6,7 +6,6 @@ use askama_web::WebTemplate;
 #[derive(Template, WebTemplate)]
 #[template(path = "index.html")]
 pub struct HomePageTemplate {
-    pub nodes: Vec<String>,
 }
 
 #[derive(Template, WebTemplate)]

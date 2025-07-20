@@ -8,8 +8,7 @@ use crate::templates::{
     FilePageTemplate, HomePageTemplate, NetworkPageTemplate, NotesPageTemplate,
 };
 use chrono::Local;
-use iroh_blobs::HashAndFormat;
-use iroh_blobs::net_protocol::Blobs;
+use iroh_blobs::{BlobsProtocol, HashAndFormat};
 use iroh_blobs::ticket::BlobTicket;
 use rocket::State;
 use rocket::fairing::AdHoc;
@@ -40,16 +39,11 @@ fn split_path(path: &PathBuf) -> (Vec<String>, Vec<String>) {
 }
 
 #[get("/")]
-pub fn index<'r>(blobs: &State<Blobs>) -> impl Responder<'r, 'static> {
-    let remotes = blobs.endpoint().remote_info_iter();
-    let mut nodes: Vec<String> = Vec::new();
-    for i in remotes {
-        nodes.push(i.node_id.fmt_short())
-    }
-    HomePageTemplate { nodes: nodes }
+pub fn index<'r>() -> impl Responder<'r, 'static> {
+    HomePageTemplate {}
 }
 
-pub async fn get_collection(encoded: &str, blobs: &Blobs) -> anyhow::Result<()> {
+pub async fn get_collection(encoded: &str, blobs: &BlobsProtocol) -> anyhow::Result<()> {
     match BlobTicket::from_str(encoded) {
         Ok(ticket) => {
             println!("{:#?}", ticket);
@@ -84,7 +78,7 @@ pub struct BlobUpload<'v> {
 #[post("/blob", data = "<web_message>")]
 pub async fn message<'r>(
     web_message: Form<BlobUpload<'_>>,
-    blobs: &State<Blobs>,
+    blobs: &State<BlobsProtocol>,
     fileSet: &State<FileSet>,
 ) -> &'static str {
     let encoded = web_message.message.trim();
@@ -178,8 +172,13 @@ pub fn notes<'r>() -> impl Responder<'r, 'static> {
 }
 
 #[get("/network")]
-pub fn network<'r>() -> impl Responder<'r, 'static> {
-    NetworkPageTemplate { nodes: vec![]}
+pub fn network<'r>(blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> {
+    let remotes = blobs.endpoint().remote_info_iter();
+    let mut nodes: Vec<String> = Vec::new();
+    for i in remotes {
+        nodes.push(i.node_id.fmt_short())
+    }
+    NetworkPageTemplate { nodes: vec![] }
 }
 
 pub fn stage() -> AdHoc {

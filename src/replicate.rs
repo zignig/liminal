@@ -9,9 +9,9 @@ use bytes::Bytes;
 use chrono::Local;
 use iroh::{NodeAddr, PublicKey, SecretKey};
 use iroh_blobs::{
-    Hash, format::collection::Collection, hashseq::HashSeq,
-    net_protocol::Blobs,
+    format::collection::Collection, hashseq::HashSeq, BlobsProtocol, Hash
 };
+
 use iroh_gossip::{
     api::{Event, GossipReceiver, GossipSender},
     proto::TopicId,
@@ -23,7 +23,7 @@ use n0_future::StreamExt;
 use n0_snafu::{Result, ResultExt};
 use serde::{Deserialize, Serialize};
 
-pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: Blobs) -> Result<()> {
+pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) -> Result<()> {
     // init a peerid -> name hashmap
     let mut names = HashMap::new();
     while let Some(event) = receiver.try_next().await? {
@@ -86,7 +86,7 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: Blobs) -> Resul
     Ok(())
 }
 
-pub async fn publish_loop(mut sender: GossipSender, blobs: Blobs, secret: SecretKey) -> Result<()> {
+pub async fn publish_loop(mut sender: GossipSender, blobs: BlobsProtocol, secret: SecretKey) -> Result<()> {
     loop {
         let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
         while let Some(event) = t.next().await {

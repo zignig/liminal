@@ -17,7 +17,6 @@ use n0_watcher::Watcher;
 use snafu::whatever;
 use std::path::PathBuf;
 use tokio::signal::ctrl_c;
-//use tokio::{signal::ctrl_c, sync::mpsc};
 
 mod replicate;
 mod cli;
@@ -109,7 +108,7 @@ async fn main() -> Result<()> {
 
     let store = FsStore::load(path).await.unwrap();
 
-    let blobs = iroh_blobs::net_protocol::Blobs::new(&store, endpoint.clone(), None);
+    let blobs =  iroh_blobs::BlobsProtocol::new(&store, endpoint.clone(), None);
 
     let fileset = store::FileSet::new(blobs.clone());
     fileset.fill().await;

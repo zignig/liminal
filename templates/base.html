@@ -2,6 +2,7 @@
 <html>
 
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Liminal{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/bulma.min.css" />
     <link rel="stylesheet" href="/static/css/app.css" />
@@ -29,9 +30,9 @@
     </nav>
     <div class="container">
         <div class="columns">
-            <div class="column is-2 ">
+            <aside class="column is-2 aside">
                 {% include "menu.html" %}
-            </div>
+            </aside>
             <div class="column is-10">
                 <div id="block">
                     {% block content %}<p>Placeholder content</p>{% endblock %}
@@ -39,7 +40,6 @@
             </div>
         </div>
     </div>
-    <script src="/static/js/app.js"></script>
 </body>
 
 </html>
