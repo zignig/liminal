@@ -574,10 +574,10 @@ impl FsTree {
     pub fn write_at(&self, folder: impl AsRef<Path>) -> Result<()> {
         let folder = folder.as_ref();
 
-        #[cfg(feature = "fs-err")]
-        let symlink_function = fs_err::os::unix::fs::symlink;
-        #[cfg(not(feature = "fs-err"))]
-        let symlink_function = std::os::unix::fs::symlink;
+            // #[cfg(feature = "fs-err")]
+            // let symlink_function = fs_err::os::unix::fs::symlink;
+            // #[cfg(not(feature = "fs-err"))]
+            // let symlink_function = std::os::unix::fs::symlink;
 
         for (node, path) in self.iter().skip(1) {
             let path = folder.join(&path);
@@ -589,8 +589,8 @@ impl FsTree {
                 Self::Directory(_) => {
                     fs::create_dir(path)?;
                 },
-                Self::Symlink(target) => {
-                    symlink_function(target, path)?;
+                Self::Symlink(_target) => {
+                    // symlink_function(target, path)?;
                 },
             }
         }
