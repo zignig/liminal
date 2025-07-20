@@ -5,11 +5,11 @@ use std::str::FromStr;
 
 use crate::store::FileSet;
 use crate::templates::{
-    FilePageTemplate, GltfPageTemplate, HomePageTemplate, NetworkPageTemplate, NotesPageTemplate
+    FilePageTemplate, GltfPageTemplate, HomePageTemplate, NetworkPageTemplate, NotesPageTemplate,
 };
 use chrono::Local;
-use iroh_blobs::{BlobsProtocol, HashAndFormat};
 use iroh_blobs::ticket::BlobTicket;
+use iroh_blobs::{BlobsProtocol, HashAndFormat};
 use rocket::State;
 use rocket::fairing::AdHoc;
 use rocket::form::Form;
@@ -111,7 +111,7 @@ pub async fn coll<'r>(collection: &str, fileset: &State<FileSet>) -> impl Respon
         }
         Err(_) => {}
     }
-    
+
     let mut path = PathBuf::new();
     path.push(&collection);
     let (pref, items) = split_path(&path);
@@ -179,12 +179,14 @@ pub fn network<'r>(blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> 
     for i in remotes {
         nodes.push(i.node_id.fmt_short())
     }
-    NetworkPageTemplate { nodes: vec![] }
+    NetworkPageTemplate { nodes: nodes }
 }
 
 #[get("/viewer")]
-pub fn viewer<'r>() ->  impl Responder<'r, 'static> {
-    GltfPageTemplate { path : "/static/train-diesel-a.glb".to_owned()}
+pub fn viewer<'r>() -> impl Responder<'r, 'static> {
+    GltfPageTemplate {
+        path: "/static/train-diesel-a.glb".to_owned(),
+    }
 }
 
 pub fn stage() -> AdHoc {

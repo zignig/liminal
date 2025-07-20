@@ -6,7 +6,7 @@ use anyhow::{Result, anyhow};
 use bytes::Bytes;
 use dashmap::DashMap;
 use fs_tree::FsTree;
-use iroh_blobs::{format::collection::Collection, BlobsProtocol, Hash};
+use iroh_blobs::{BlobsProtocol, Hash, format::collection::Collection};
 use n0_future::StreamExt;
 
 #[derive(Debug, Clone)]
@@ -18,6 +18,7 @@ pub struct Inner {
     roots: DashMap<String, Item>,
 }
 
+// Internal representation
 #[derive(Debug, Clone)]
 pub enum Item {
     Unloaded {
@@ -26,7 +27,14 @@ pub enum Item {
     Loaded {
         directories: FsTree,
         links: DashMap<String, Hash>,
+        hash: Hash,
     },
+}
+
+//Return to the file server
+pub enum RenderType {
+    File { file_name: String },
+    Folder { items: Vec<String> },
 }
 
 impl FileSet {
@@ -60,6 +68,7 @@ impl FileSet {
     }
 
     pub async fn get(&self, root: String, path: &PathBuf) -> anyhow::Result<Option<Vec<String>>> {
+        // Do we have the collection key at all ?
         if self.0.roots.contains_key(&root) {
             if let Some(mut base) = self.0.roots.get_mut(&root) {
                 let the_dir = match base.value() {
@@ -67,31 +76,33 @@ impl FileSet {
                         // load the collection and covert to fs
                         let collection =
                             Collection::load(hash.clone(), self.0.blobs.store()).await?;
-                        let mut dir = FsTree::new_dir();
+                        let mut directories = FsTree::new_dir();
                         let links: DashMap<String, Hash> = DashMap::new();
                         for (path, hash) in collection {
                             // println!("{:?}", path);
-                            dir = dir.merge(FsTree::from_path_text(&path));
+                            directories = directories.merge(FsTree::from_path_text(&path));
                             links.insert(path, hash);
                         }
                         *base = Item::Loaded {
-                            directories: dir.clone(),
+                            directories: directories.clone(),
                             links: links,
+                            hash: hash.clone(),
                         };
-                        dir
+                        directories
                     }
                     Item::Loaded {
                         directories,
                         links: _,
-                    } => {
-                        // println!("it's already loaded ! ");
-                        directories.clone()
-                        // println!("{:#?}",directories.children())
-                        // get the path and update the map
-                        // self.0.roots.insert(base.key(), )
-                    }
+                        hash: _,
+                    } => directories.clone(),
                 };
+
                 if let Some(dir) = the_dir.get(path.clone()) {
+                    // match dir {
+                    //     FsTree::Regular => todo!(),
+                    //     FsTree::Directory(btree_map) => todo!(),
+                    //     FsTree::Symlink(path_buf) => todo!(),
+                    // }
                     // println!("{}", path.display().to_string());
                     // println!("{:#?}", dir.children());
                     if let Some(d) = dir.children() {
@@ -112,6 +123,7 @@ impl FileSet {
                     Item::Loaded {
                         directories: _,
                         links,
+                        hash: _,
                     } => {
                         if let Some(reference) = links.get(&path.display().to_string()) {
                             let h = reference.value().clone();
@@ -129,10 +141,5 @@ impl FileSet {
 
     pub fn list_roots(&self) -> Vec<String> {
         self.0.roots.iter().map(|k| k.key().to_string()).collect()
-        // let mut items: Vec<String> = Vec::new();
-        // for a in self.0.roots.iter() {
-        //     items.push(a.key().to_string());
-        // }
-        // items
     }
 }
