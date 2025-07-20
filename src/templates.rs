@@ -32,5 +32,5 @@ pub struct NetworkPageTemplate {
 #[derive(Template, WebTemplate)]
 #[template(path = "gltfview.html")]
 pub struct GltfPageTemplate {
-    path: String
+    pub path: String
 }
