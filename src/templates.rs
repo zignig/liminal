@@ -6,6 +6,7 @@ use askama_web::WebTemplate;
 #[derive(Template, WebTemplate)]
 #[template(path = "index.html")]
 pub struct HomePageTemplate {
+    pub section: String
 }
 
 #[derive(Template, WebTemplate)]
@@ -15,11 +16,13 @@ pub struct FilePageTemplate{
     pub path: String,
     pub segments: Vec<String>,
     pub prefixes: Vec<String>,
+    pub section: String
 }
 
 #[derive(Template, WebTemplate)]
 #[template(path = "notes.html")]
 pub struct NotesPageTemplate {
+    pub section: String
 }
 
 
@@ -27,10 +30,12 @@ pub struct NotesPageTemplate {
 #[template(path = "network.html")]
 pub struct NetworkPageTemplate {
     pub nodes: Vec<String>,
+    pub section: String
 }
 
 #[derive(Template, WebTemplate)]
 #[template(path = "gltfview.html")]
 pub struct GltfPageTemplate {
-    pub path: String
+    pub path: String,
+    pub section: String 
 }

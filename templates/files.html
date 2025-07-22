@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 
+{% let section = "files" %}
 {% block content %}
 <div class="content">
-    <div class="content">
-        <h1> Files </h1>
-    </div>
     <nav class="breadcrumb" aria-label="breadcrumbs">
         <ul>
             {% for seg in segments %}
@@ -12,7 +10,6 @@
             {% endfor %}
         </ul>
     </nav>
-    <hr>
     <table class="table is-striped is-hoverable is-fullwidth">
         <tbody>
             {% for item in items %}

@@ -1,11 +1,9 @@
-use std::io::Cursor;
-use std::path::PathBuf;
 // use std::path::PathBuf;
 use std::str::FromStr;
 
 use crate::store::FileSet;
 use crate::templates::{
-    FilePageTemplate, GltfPageTemplate, HomePageTemplate, NetworkPageTemplate, NotesPageTemplate,
+    GltfPageTemplate, HomePageTemplate, NetworkPageTemplate, NotesPageTemplate,
 };
 use chrono::Local;
 use iroh_blobs::ticket::BlobTicket;
@@ -14,33 +12,26 @@ use rocket::State;
 use rocket::fairing::AdHoc;
 use rocket::form::Form;
 use rocket::get;
-use rocket::http::{ContentType, Status};
 use rocket::response::Responder;
-use rocket::response::Response;
 
+pub mod assets;
 pub mod fixed;
+pub mod services;
 
-fn split_path(path: &PathBuf) -> (Vec<String>, Vec<String>) {
-    let v: Vec<String> = path
-        .display()
-        .to_string()
-        .split("/")
-        .map(|v| v.to_string())
-        .collect();
-    // scan and bake
-    let mut prefixes: Vec<String> = Vec::new();
-    let mut items: Vec<String> = Vec::new();
-    for (index, name) in v.iter().enumerate() {
-        let pref = v[0..index].join("/");
-        prefixes.push(pref);
-        items.push(name.to_string())
-    }
-    (prefixes, items)
+pub fn stage() -> AdHoc {
+    AdHoc::on_ignite("Web interface", |rocket| async {
+        rocket.mount(
+            "/",
+            routes![index, message, fixed::dist, viewer, network, notes],
+        )
+    })
 }
 
 #[get("/")]
 pub fn index<'r>() -> impl Responder<'r, 'static> {
-    HomePageTemplate {}
+    HomePageTemplate {
+        section: "".to_string()
+    }
 }
 
 pub async fn get_collection(encoded: &str, blobs: &BlobsProtocol) -> anyhow::Result<()> {
@@ -70,6 +61,7 @@ pub async fn get_collection(encoded: &str, blobs: &BlobsProtocol) -> anyhow::Res
         Err(e) => Err(e.into()),
     }
 }
+
 #[derive(FromForm)]
 pub struct BlobUpload<'v> {
     message: &'v str,
@@ -79,97 +71,18 @@ pub struct BlobUpload<'v> {
 pub async fn message<'r>(
     web_message: Form<BlobUpload<'_>>,
     blobs: &State<BlobsProtocol>,
-    fileSet: &State<FileSet>,
+    file_set: &State<FileSet>,
 ) -> &'static str {
     let encoded = web_message.message.trim();
     let r = get_collection(encoded, blobs).await;
-    fileSet.fill().await;
+    file_set.fill().await;
     println!("Trans info {:#?}", r);
     "should be an error"
 }
 
-#[get("/files")]
-pub async fn files<'r>(fileset: &State<FileSet>) -> impl Responder<'r, 'static> {
-    let coll = fileset.list_roots();
-    FilePageTemplate {
-        items: coll,
-        path: "".to_string(),
-        segments: vec![],
-        prefixes: vec![],
-    }
-}
-
-#[get("/files/<collection>")]
-pub async fn coll<'r>(collection: &str, fileset: &State<FileSet>) -> impl Responder<'r, 'static> {
-    let res = fileset.get(collection.to_string(), &PathBuf::new()).await;
-    let mut coll = Vec::new();
-    match res {
-        Ok(op) => {
-            if let Some(r) = op {
-                coll = r;
-            }
-        }
-        Err(_) => {}
-    }
-
-    let mut path = PathBuf::new();
-    path.push(&collection);
-    let (pref, items) = split_path(&path);
-    FilePageTemplate {
-        items: coll,
-        path: path.display().to_string(),
-        segments: items,
-        prefixes: pref,
-    }
-}
-
-#[get("/files/<collection>/<path..>", rank = 2)]
-pub async fn inner_files<'r>(
-    collection: &str,
-    path: PathBuf,
-    fileset: &State<FileSet>,
-) -> impl Responder<'r, 'static> {
-    let res = fileset.get(collection.to_string(), &path).await;
-    let mut items = Vec::new();
-    match res {
-        Ok(op) => {
-            match op {
-                Some(r) => items = r,
-                None => {
-                    // Means no children , is a file
-                    let fr = fileset
-                        .get_file(collection.to_string(), &path)
-                        .await
-                        .unwrap();
-                    // println!("{:?}",fr);
-                    let response = Response::build()
-                        .status(Status::Accepted)
-                        .header(ContentType::Plain)
-                        .sized_body(fr.len(), Cursor::new(fr))
-                        .finalize();
-                    //return response;
-                }
-            }
-        }
-        Err(_) => {}
-    }
-    let mut full_path = PathBuf::new();
-    full_path.push(&collection);
-    full_path.push(&path);
-
-    let (pref, entries) = split_path(&full_path);
-
-    FilePageTemplate {
-        items: items,
-        path: full_path.display().to_string(),
-        segments: entries,
-        prefixes: pref,
-    }
-}
-
 #[get("/notes")]
 pub fn notes<'r>() -> impl Responder<'r, 'static> {
-    NotesPageTemplate {}
+    NotesPageTemplate { section: "notes".to_string() }
 }
 
 #[get("/network")]
@@ -179,31 +92,17 @@ pub fn network<'r>(blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> 
     for i in remotes {
         nodes.push(i.node_id.fmt_short())
     }
-    NetworkPageTemplate { nodes: nodes }
+    NetworkPageTemplate {
+        nodes: nodes,
+        section: "network".to_string()
+    }
 }
 
 #[get("/viewer")]
 pub fn viewer<'r>() -> impl Responder<'r, 'static> {
     GltfPageTemplate {
         path: "/static/train-diesel-a.glb".to_owned(),
-    }
-}
+        section: "viewer".to_string()
 
-pub fn stage() -> AdHoc {
-    AdHoc::on_ignite("Web interface", |rocket| async {
-        rocket.mount(
-            "/",
-            routes![
-                index,
-                coll,
-                notes,
-                files,
-                message,
-                fixed::dist,
-                inner_files,
-                network,
-                viewer
-            ],
-        )
-    })
+    }
 }

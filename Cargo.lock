@@ -2405,6 +2405,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "irpc-iroh"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9585893d9039f21e1406818d5bb3bc445ac4fa1b3aa2eb46a8bbd5963b11f77"
+dependencies = [
+ "anyhow",
+ "getrandom 0.3.3",
+ "iroh",
+ "irpc",
+ "n0-future",
+ "postcard",
+ "serde",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "is-terminal"
 version = "0.4.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2490,6 +2507,7 @@ dependencies = [
  "iroh",
  "iroh-blobs",
  "iroh-gossip",
+ "irpc-iroh",
  "n0-future",
  "n0-snafu",
  "n0-watcher",

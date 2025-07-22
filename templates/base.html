@@ -11,33 +11,31 @@
 </head>
 
 <body>
-    <div class="container"></div>
-    <nav class="navbar">
+    <nav class="navbar is-visible">
         <div id="navMenu" class="navbar-menu">
-            <div class="navbar-start">
-                <a class="navbar-item" href="/">
-                    Home
-                </a>
-            </div>
-            <div class="navbar-end">
-                <div class="navbar-item">
-                    {% block actions %}
-                    {% endblock actions %}
+            <div class="navbar-brand">
+                <div class="block">
+                    <a href="/">
+                        <div class="title is-4 brand">LIMINAL</div>
+                    </a>
                 </div>
             </div>
         </div>
     </nav>
-
-    <div class="columns">
-        <aside class="column is-1 aside">
-            {% include "menu.html" %}
-        </aside>
-        <div class="column is-10">
-            <div>
-                {% block content %}<p>Placeholder content</p>{% endblock %}
+    <div class="container">
+        {% block sect %}{% endblock %}
+        {% include "menu.html" %}
+        <div class="columns">
+            <aside class="column is-2 aside">
+                {% block actions %}
+                {% endblock actions %}
+            </aside>
+            <div class="column is-10">
+                <div>
+                    {% block content %}<p>Placeholder content</p>{% endblock %}
+                </div>
             </div>
         </div>
-    </div>
     </div>
 </body>
 

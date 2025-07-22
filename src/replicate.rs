@@ -1,20 +1,13 @@
-use std::{
-    collections::HashMap,
-    fmt,
-    str::FromStr,
-    time::Duration,
-};
+use std::{collections::HashMap, fmt, str::FromStr, sync::Arc, time::Duration};
 
 use bytes::Bytes;
 use chrono::Local;
+use dashmap::DashMap;
 use iroh::{NodeAddr, PublicKey, SecretKey};
-use iroh_blobs::{
-    format::collection::Collection, hashseq::HashSeq, BlobsProtocol, Hash
-};
+use iroh_blobs::{BlobsProtocol, Hash, format::collection::Collection, hashseq::HashSeq};
 
 use iroh_gossip::{
-    api::{Event, GossipReceiver, GossipSender},
-    proto::TopicId,
+    api::{Event, GossipApi, GossipReceiver, GossipSender}, net::Gossip, proto::TopicId
 };
 
 use ed25519_dalek::Signature;
@@ -22,6 +15,35 @@ use ed25519_dalek::Signature;
 use n0_future::StreamExt;
 use n0_snafu::{Result, ResultExt};
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone)]
+pub struct ReplicaGossip(Arc<Inner>);
+
+#[derive(Debug, Clone)]
+pub struct Inner {
+    gossip: GossipApi,
+    blobs: BlobsProtocol,
+    roots: DashMap<String, Vec<NodeAddr>>,
+}
+
+impl ReplicaGossip {
+    fn new(blobs: BlobsProtocol,gossip: GossipApi) -> Self {
+        Self(Arc::new(Inner {
+            gossip: gossip,
+            blobs: blobs,
+            roots: DashMap::new(),
+        }))
+    }
+
+    fn run(self) {
+        // task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
+        // task::spawn(replicate::publish_loop(
+        //     sender,
+        //     blobs.clone(),
+        //     endpoint.secret_key().clone(),
+        // ));
+    }
+}
 
 pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) -> Result<()> {
     // init a peerid -> name hashmap
@@ -61,7 +83,7 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) 
                         // Check that it is a collection
                         Collection::load(key, blobs.store()).await.expect("woteva");
                         // Just get the whole thing
-                        
+
                         // let knf = HashAndFormat::new(key, BlobFormat::HashSeq);
                         // let local = blobs.store().remote().local(knf).await.expect("msg");
                         // if !local.is_complete() {
@@ -86,7 +108,11 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) 
     Ok(())
 }
 
-pub async fn publish_loop(mut sender: GossipSender, blobs: BlobsProtocol, secret: SecretKey) -> Result<()> {
+pub async fn publish_loop(
+    mut sender: GossipSender,
+    blobs: BlobsProtocol,
+    secret: SecretKey,
+) -> Result<()> {
     loop {
         let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
         while let Some(event) = t.next().await {
@@ -105,7 +131,7 @@ pub async fn publish_loop(mut sender: GossipSender, blobs: BlobsProtocol, secret
     }
 }
 
-
+// Message Structs
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignedMessage {
     from: PublicKey,

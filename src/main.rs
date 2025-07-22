@@ -75,14 +75,15 @@ async fn main() -> Result<()> {
             whatever!("You cannot set --no-relay and --relay at the same time");
         }
     };
+
     println!("> using relay servers: {}", fmt_relay_mode(&relay_mode));
 
     // build our magic endpoint
     let endpoint = Endpoint::builder()
         .secret_key(secret_key)
-        .relay_mode(relay_mode)
-        .discovery_local_network()
+        // .relay_mode(relay_mode)
         .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, args.bind_port))
+        .discovery_local_network()
         .bind()
         .await?;
 
@@ -103,7 +104,7 @@ async fn main() -> Result<()> {
 
     println!("> ticket to join us: {ticket}");
 
-    println!("blobs!");
+    // println!("blobs!");
     let path = PathBuf::from("data/blobs");
     println!("Data store : {}", path.display());
 
@@ -112,6 +113,7 @@ async fn main() -> Result<()> {
     let blobs =  iroh_blobs::BlobsProtocol::new(&store, endpoint.clone(), None);
 
     let fileset = store::FileSet::new(blobs.clone());
+
     fileset.fill().await;
 
     // setup router
@@ -136,7 +138,6 @@ async fn main() -> Result<()> {
     let (sender, receiver) = gossip.subscribe(topic, peer_ids).await?.split();
     println!("> connected!");
 
-
     // Move all this into the replicate 
     // subscribe and print loop
     task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
@@ -159,6 +160,8 @@ async fn main() -> Result<()> {
             .manage(fileset.clone())
             .manage(blobs.clone())
             .attach(web::stage())
+            .attach(web::assets::stage())
+            .attach(web::services::stage())
             .launch()
             .await;
     } else {

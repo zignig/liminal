@@ -1,10 +1,7 @@
-<aside class="menu">
-    <p class="menu-label">
-        General
-    </p>
-    <ul class="menu-list">
-        <li><a href="/files">Files</a></li>
-        <li><a href="/notes">Notes</a></li>
-        <li><a href="/network">Network</a></li>
+<div class="tabs is-boxed">
+    <ul>
+        <li {%if section=="files" %}class="is-active" {% endif %}><a href="/files">Files</a></li>
+        <li {%if section=="notes" %}class="is-active" {% endif %}><a href="/notes">Notes</a></li>
+        <li {%if section=="network" %}class="is-active" {% endif %}><a href="/network">Network</a></li>
     </ul>
-</aside>
+</div>
