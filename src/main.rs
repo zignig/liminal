@@ -5,7 +5,7 @@ use std::{
 
 //use futures_lite::StreamExt;
 use clap::Parser;
-use iroh::{Endpoint, RelayMode, SecretKey};
+use iroh::{Endpoint, SecretKey};
 use iroh_blobs::{store::fs::FsStore, Hash, ALPN as BLOBS_ALPN};
 use iroh_gossip::{
     net::{GOSSIP_ALPN, Gossip},
@@ -14,7 +14,6 @@ use iroh_gossip::{
 use n0_future::task;
 use n0_snafu::{Result, ResultExt};
 use n0_watcher::Watcher;
-use snafu::whatever;
 use std::path::PathBuf;
 use tokio::signal::ctrl_c;
 
@@ -25,7 +24,7 @@ mod templates;
 mod web;
 
 use cli::Command;
-use replicate::Ticket;
+use cli::Ticket;
 
 #[macro_use]
 extern crate rocket;

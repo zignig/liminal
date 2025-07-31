@@ -7,7 +7,9 @@ use iroh::{NodeAddr, PublicKey, SecretKey};
 use iroh_blobs::{BlobsProtocol, Hash, format::collection::Collection, hashseq::HashSeq};
 
 use iroh_gossip::{
-    api::{Event, GossipApi, GossipReceiver, GossipSender}, net::Gossip, proto::TopicId
+    api::{Event, GossipApi, GossipReceiver, GossipSender},
+    net::Gossip,
+    proto::TopicId,
 };
 
 use ed25519_dalek::Signature;
@@ -23,15 +25,17 @@ pub struct ReplicaGossip(Arc<Inner>);
 pub struct Inner {
     gossip: GossipApi,
     blobs: BlobsProtocol,
-    roots: DashMap<String, Vec<NodeAddr>>,
+    roots: DashMap<Hash, Vec<NodeAddr>>,
+    expire: DashMap<u64,Hash>
 }
 
 impl ReplicaGossip {
-    fn new(blobs: BlobsProtocol,gossip: GossipApi) -> Self {
+    fn new(blobs: BlobsProtocol, gossip: GossipApi) -> Self {
         Self(Arc::new(Inner {
             gossip: gossip,
             blobs: blobs,
             roots: DashMap::new(),
+            expire: DashMap::new()
         }))
     }
 
@@ -47,20 +51,12 @@ impl ReplicaGossip {
 
 pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) -> Result<()> {
     // init a peerid -> name hashmap
-    let mut names = HashMap::new();
     while let Some(event) = receiver.try_next().await? {
         if let Event::Received(msg) = event {
-            let (from, message) = SignedMessage::verify_and_decode(&msg.content)?;
+            let (_, message) = SignedMessage::verify_and_decode(&msg.content)?;
             match message {
-                Message::AboutMe { name } => {
-                    names.insert(from, name.clone());
-                    println!("> {} is now known as {}", from.fmt_short(), name);
-                }
                 Message::Message { text } => {
-                    let name = names
-                        .get(&from)
-                        .map_or_else(|| from.fmt_short(), String::to_string);
-                    println!("{name}: {text}");
+                    println!("{text}");
                 }
                 Message::Upkey { key } => {
                     let have = blobs.store().has(key).await.expect("no key");
@@ -102,6 +98,8 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) 
                     //     println!("{} - {} ", s, h);
                     // }
                 }
+                Message::Whohas { key } => {},
+                Message::IHave { key } => {},
             }
         }
     }
@@ -119,7 +117,7 @@ pub async fn publish_loop(
             match event {
                 Ok(tag) => {
                     let message = Message::Upkey { key: tag.hash };
-                    // println!("Sending --- {:?}", &message);
+                    println!("Sending --- {:?}", &message);
                     let encoded_message = SignedMessage::sign_and_encode(&secret, &message)?;
                     sender.broadcast(encoded_message).await?;
                 }
@@ -165,43 +163,9 @@ impl SignedMessage {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
-    AboutMe { name: String },
+    Whohas { key: Hash },
+    IHave { key: Hash },
     Message { text: String },
     Upkey { key: Hash },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Ticket {
-    pub peers: Vec<NodeAddr>,
-}
-
-impl Ticket {
-    /// Deserializes from bytes.
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        postcard::from_bytes(bytes).e()
-    }
-    /// Serializes to bytes.
-    pub fn to_bytes(&self) -> Vec<u8> {
-        postcard::to_stdvec(self).expect("postcard::to_stdvec is infallible")
-    }
-}
-
-/// Serializes to base32.
-impl fmt::Display for Ticket {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut text = data_encoding::BASE32_NOPAD.encode(&self.to_bytes()[..]);
-        text.make_ascii_lowercase();
-        write!(f, "{text}")
-    }
-}
-
-/// Deserializes from base32.
-impl FromStr for Ticket {
-    type Err = n0_snafu::Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let bytes = data_encoding::BASE32_NOPAD
-            .decode(s.to_ascii_uppercase().as_bytes())
-            .e()?;
-        Self::from_bytes(&bytes)
-    }
-}
