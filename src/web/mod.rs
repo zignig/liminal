@@ -30,6 +30,7 @@ pub fn stage() -> AdHoc {
                 index,
                 message,
                 fixed::dist,
+                fixed::favicon,
                 viewer,
                 network,
                 notes,

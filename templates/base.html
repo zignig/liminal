@@ -6,7 +6,7 @@
     <title>{% block title %}Liminal{% endblock %}</title>
     <link rel="stylesheet" type="text/css" href="/static/css/bulma.min.css" />
     <link rel="stylesheet" type="text/css" href="/static/css/app.css" />
-    <link rel="stylesheet" type="text/css" href="/static/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/fa.min.css">
     {% block head %}{% endblock %}
 </head>
 
@@ -24,7 +24,7 @@
                 <div class="navbar-item">
                     <div class="buttons">
                         {% block auth %}
-                        <a href="/login" class="button is-small is-info">
+                        <a href="/login" class="button is-small">
                             Log in
                         </a>
                         {% endblock %}
