@@ -6,7 +6,7 @@ use std::{
 //use futures_lite::StreamExt;
 use clap::Parser;
 use iroh::{Endpoint, SecretKey};
-use iroh_blobs::{store::fs::FsStore, Hash, ALPN as BLOBS_ALPN};
+use iroh_blobs::{ALPN as BLOBS_ALPN, Hash, store::fs::FsStore};
 use iroh_gossip::{
     net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
@@ -45,10 +45,6 @@ async fn main() -> Result<()> {
         Command::Join { ticket } => {
             let Ticket { peers } = Ticket::from_str(ticket)?;
             peers
-        }
-        Command::Upload { path: _ } => {
-            let topic = TopicId::from_bytes(rand::random());
-            vec![]
         }
     };
 
@@ -91,13 +87,13 @@ async fn main() -> Result<()> {
     // Local blob store
     let store = FsStore::load(path).await.unwrap();
 
-    // BLOBS! 
+    // BLOBS!
     let blobs = iroh_blobs::BlobsProtocol::new(&store, endpoint.clone(), None);
 
     // Path browser
     let fileset = store::FileSet::new(blobs.clone());
 
-    // Get the file roots 
+    // Get the file roots
     fileset.fill().await;
 
     // setup router
@@ -119,7 +115,7 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Set liminal, hashed as the topic 
+    // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
 
     let (sender, receiver) = gossip.subscribe(topic, peer_ids).await?.split();
@@ -127,12 +123,16 @@ async fn main() -> Result<()> {
 
     // Move all this into the replicate
     // subscribe and print loop
+    // TODO : this should be a construct 
+
     task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
     task::spawn(replicate::publish_loop(
         sender,
         blobs.clone(),
         endpoint.secret_key().clone(),
     ));
+
+    // Web interface 
 
     if args.web {
         println!("starting web server ");
@@ -152,8 +152,10 @@ async fn main() -> Result<()> {
             .launch()
             .await;
     } else {
+        // Just run and wait.
         ctrl_c().await.unwrap();
     }
+    
     // Shutdown
     router.shutdown().await.e()?;
     Ok(())

@@ -7,17 +7,6 @@ use n0_snafu::ResultExt;
 use n0_snafu::Result;
 use serde::{Deserialize, Serialize};
 
-/// Chat over iroh-gossip
-///
-/// This broadcasts signed messages over iroh-gossip and verifies signatures
-/// on received messages.
-///
-/// By default a new node id is created when starting the example. To reuse your identity,
-/// set the `--secret-key` flag with the secret key printed on a previous invocation.
-///
-/// By default, the relay server run by n0 is used. To use a local relay server, run
-///     cargo run --bin iroh-relay --features iroh-relay -- --dev
-/// in another terminal and then set the `-d http://localhost:3340` flag on this example.
 #[derive(Parser, Debug)]
 pub struct Args {
     /// secret key to derive our node id from.
@@ -50,13 +39,14 @@ pub enum Command {
     },
     /// Join a chat room from a ticket.
     Join {
-        /// The ticket, as base32 string.
+        /// The ticket, as base32 string
+        /// Just a node , assumes that it has gossip and is listening for "liminal::"
         ticket: String,
-    },
-    Upload {
-        path: Option<PathBuf>,
-    },
+    }
 }
+
+// Base ticket join.
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Ticket {

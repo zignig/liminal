@@ -1,4 +1,4 @@
-
+// The web page templates.
 
 use askama::Template;
 use askama_web::WebTemplate;

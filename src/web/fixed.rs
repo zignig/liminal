@@ -1,3 +1,6 @@
+//! Serves static files, with a cache header.
+//! 
+
 use rocket::http::{ContentType, Header};
 use rocket::response::Responder;
 use rocket::{Response, get};

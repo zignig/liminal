@@ -1,5 +1,7 @@
-use std::path::PathBuf;
+//! Get assets in blobs by collection path 
+//! 
 
+use std::path::PathBuf;
 use rocket::http::{ContentType, Status};
 use rocket::{fairing::AdHoc, State};
 use rocket::response::Responder;

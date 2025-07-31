@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fmt, str::FromStr, sync::Arc, time::Duration};
+//! This is a gossip channel that keeps a list of hashes
+//! 
+//! TODO : it needs a Downloader and an Actor loop
+//! 
+use std::{sync::Arc, time::Duration};
 
 use bytes::Bytes;
 use chrono::Local;
@@ -6,11 +10,9 @@ use dashmap::DashMap;
 use iroh::{NodeAddr, PublicKey, SecretKey};
 use iroh_blobs::{BlobsProtocol, Hash, format::collection::Collection, hashseq::HashSeq};
 
-use iroh_gossip::{
-    api::{Event, GossipApi, GossipReceiver, GossipSender},
-    net::Gossip,
-    proto::TopicId,
-};
+use iroh_gossip::
+    api::{Event, GossipApi, GossipReceiver, GossipSender}
+;
 
 use ed25519_dalek::Signature;
 
@@ -67,6 +69,7 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) 
                             .connect(msg.delivered_from, iroh_blobs::protocol::ALPN)
                             .await?;
                         // fetch  the root key
+                        // TODO : extract into function
                         blobs.store().remote().fetch(conn.clone(), key).await?;
                         let bl = blobs.store().get_bytes(key).await?;
                         let hs = HashSeq::try_from(bl).expect("hash fail");
@@ -99,7 +102,7 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) 
                     // }
                 }
                 Message::Whohas { key } => {},
-                Message::IHave { key } => {},
+                Message::IHave { key  } => {},
             }
         }
     }
@@ -117,7 +120,7 @@ pub async fn publish_loop(
             match event {
                 Ok(tag) => {
                     let message = Message::Upkey { key: tag.hash };
-                    println!("Sending --- {:?}", &message);
+                    // println!("Sending --- {:?}", &message);
                     let encoded_message = SignedMessage::sign_and_encode(&secret, &message)?;
                     sender.broadcast(encoded_message).await?;
                 }
@@ -125,10 +128,12 @@ pub async fn publish_loop(
             }
             // tokio::time::sleep(Duration::from_secs(1)).await;
         }
+        // TODO : make this self aligning.
         tokio::time::sleep(Duration::from_secs(20)).await;
     }
 }
 
+// Stolen from CHAT.
 // Message Structs
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignedMessage {

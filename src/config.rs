@@ -1,3 +1,6 @@
+//! Keep authors and documents, base node info in a redb.
+//! TODO : unfinished.
+
 use std::path::PathBuf;
 
 use redb::{Database, Error, ReadableTable, TableDefinition};

@@ -1,4 +1,6 @@
-// use std::path::PathBuf;
+//! Base web interface.
+//! TODO : make this per user.
+
 use std::str::FromStr;
 
 use crate::store::FileSet;

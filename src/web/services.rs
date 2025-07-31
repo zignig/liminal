@@ -1,5 +1,9 @@
-use rocket::fairing::AdHoc;
+//! This _will_ hold the external services
+//! Blender, reder GLTF and icons
+//! Perhaps ....
+//! Freecad , Kicad  ... remains to be seen.
 
+use rocket::fairing::AdHoc;
 
 
 pub fn stage() -> AdHoc {

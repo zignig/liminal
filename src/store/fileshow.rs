@@ -45,6 +45,7 @@ impl FileSet {
         }))
     }
 
+    // Searches tags and fills the default dictionary.
     pub async fn fill(&self) {
         let mut tag_scan = self
             .0
@@ -67,6 +68,7 @@ impl FileSet {
         }
     }
 
+    // Hands back a file or folder from a path request 
     pub async fn get(&self, root: String, path: &PathBuf) -> anyhow::Result<Option<Vec<String>>> {
         // Do we have the collection key at all ?
         if self.0.roots.contains_key(&root) {
@@ -116,6 +118,8 @@ impl FileSet {
         Ok(None)
     }
 
+    // Hands baack the actual file
+    // TODO : unfinished.
     pub async fn get_file(&self, root: String, path: &PathBuf) -> anyhow::Result<Bytes> {
         if self.0.roots.contains_key(&root) {
             if let Some(mut base) = self.0.roots.get_mut(&root) {
