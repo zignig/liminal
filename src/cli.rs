@@ -20,15 +20,12 @@ pub struct Args {
     /// secret key to derive our node id from.
     #[clap(long)]
     pub secret_key: Option<String>,
-    /// Set a custom relay server. By default, the relay server hosted by n0 will be used.
-    #[clap(short, long)]
-    pub relay: Option<RelayUrl>,
-    /// Disable relay completely.
-    #[clap(long)]
-    pub no_relay: bool,
     /// Activate the web server
     #[clap(short, long)]
     pub web: bool,
+    /// Do a full replica
+    #[clap(short, long)]
+    pub replica: bool,
     /// Set your nickname.
     #[clap(short, long)]
     pub name: Option<String>,

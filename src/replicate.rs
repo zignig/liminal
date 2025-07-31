@@ -172,7 +172,6 @@ pub enum Message {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Ticket {
-    pub topic: TopicId,
     pub peers: Vec<NodeAddr>,
 }
 
