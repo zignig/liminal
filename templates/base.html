@@ -20,14 +20,31 @@
                     </a>
                 </div>
             </div>
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <div class="buttons">
+                        {% block auth %}
+                        <a href="/login" class="button is-small is-info">
+                            Log in
+                        </a>
+                        {% endblock %}
+                    </div>
+                </div>
+            </div>
         </div>
+
     </nav>
     <div class="container">
         {% block sect %}{% endblock %}
         {% include "menu.html" %}
         <div class="columns">
-            <aside class="column is-2 aside">
+            <aside class="column is-2 aside menu">
                 {% block actions %}
+                <p class="menu-label">Actions</p>
+                <ul class="menu-list">
+                    <li><a>Yoink</a></li>
+                    <li><a>Yeet</a></li>
+                </ul>
                 {% endblock actions %}
             </aside>
             <div class="column is-10">

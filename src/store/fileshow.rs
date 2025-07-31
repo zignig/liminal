@@ -68,49 +68,68 @@ impl FileSet {
         }
     }
 
-    // Hands back a file or folder from a path request 
-    pub async fn get(&self, root: String, path: &PathBuf) -> anyhow::Result<Option<Vec<String>>> {
+    // Hands back a file or folder from a path request
+    pub async fn get(&self, root: String, path: &PathBuf) -> Result<Option<RenderType>>{
         // Do we have the collection key at all ?
         if self.0.roots.contains_key(&root) {
-            if let Some(mut base) = self.0.roots.get_mut(&root) {
-                let the_dir = match base.value() {
-                    Item::Unloaded { hash } => {
-                        // load the collection and covert to fs
-                        let collection =
-                            Collection::load(hash.clone(), self.0.blobs.store()).await?;
-                        let mut directories = FsTree::new_dir();
-                        let links: DashMap<String, Hash> = DashMap::new();
-                        for (path, hash) in collection {
-                            // println!("{:?}", path);
-                            directories = directories.merge(FsTree::from_path_text(&path));
-                            links.insert(path, hash);
-                        }
-                        *base = Item::Loaded {
-                            directories: directories.clone(),
-                            links: links,
-                            hash: hash.clone(),
-                        };
-                        directories
-                    }
+            // Check to see if is already expanded
+            let mut the_dir = if let Some(base) = self.0.roots.get(&root) {
+                match base.value() {
+                    Item::Unloaded { hash: _ } => None,
                     Item::Loaded {
                         directories,
                         links: _,
                         hash: _,
-                    } => directories.clone(),
-                };
-
-                if let Some(dir) = the_dir.get(path.clone()) {
-                    // match dir {
-                    //     FsTree::Regular => todo!(),
-                    //     FsTree::Directory(btree_map) => todo!(),
-                    //     FsTree::Symlink(path_buf) => todo!(),
-                    // }
-                    // println!("{}", path.display().to_string());
-                    // println!("{:#?}", dir.children());
-                    if let Some(d) = dir.children() {
-                        let r: Vec<String> = d.keys().map(|f| f.display().to_string()).collect();
-                        // println!("{:?}", r);
-                        return Ok(Some(r));
+                    } => Some(directories.clone()),
+                }
+            } else {
+                None
+            };
+            // Not Expanded get a mutable key and fill
+            if the_dir.is_none() {
+                if let Some(mut base) = self.0.roots.get_mut(&root) {
+                    the_dir = match base.value() {
+                        Item::Unloaded { hash } => {
+                            // load the collection and covert to fs
+                            let collection =
+                                Collection::load(hash.clone(), self.0.blobs.store()).await?;
+                            let mut directories = FsTree::new_dir();
+                            let links: DashMap<String, Hash> = DashMap::new();
+                            for (path, hash) in collection {
+                                // println!("{:?}", path);
+                                directories = directories.merge(FsTree::from_path_text(&path));
+                                links.insert(path, hash);
+                            }
+                            *base = Item::Loaded {
+                                directories: directories.clone(),
+                                links: links,
+                                hash: hash.clone(),
+                            };
+                            Some(directories)
+                        }
+                        Item::Loaded {
+                            directories,
+                            links: _,
+                            hash: _,
+                        } => Some(directories.clone()),
+                    };
+                }
+            };
+            if let Some(dir) = the_dir {
+                let val = dir.get(path.clone());
+                if let Some(d) = val {
+                    match d {
+                        FsTree::Regular => {
+                            let name = path.file_name().unwrap().display().to_string();
+                            return Ok(Some(RenderType::File {
+                                file_name: name,
+                            }));
+                        }
+                        FsTree::Directory(btree_map) => {
+                            let items = btree_map.keys().map(|f| f.display().to_string()).collect();
+                            return Ok(Some(RenderType::Folder { items: items }))
+                        },
+                        _ => return Ok(None),
                     }
                 }
             }
@@ -120,9 +139,9 @@ impl FileSet {
 
     // Hands baack the actual file
     // TODO : unfinished.
-    pub async fn get_file(&self, root: String, path: &PathBuf) -> anyhow::Result<Bytes> {
+    pub async fn get_file(&self, root: String, path: &PathBuf) -> Result<Option<Bytes>> {
         if self.0.roots.contains_key(&root) {
-            if let Some(mut base) = self.0.roots.get_mut(&root) {
+            if let Some(base) = self.0.roots.get(&root) {
                 match base.value() {
                     Item::Loaded {
                         directories: _,
@@ -131,16 +150,15 @@ impl FileSet {
                     } => {
                         if let Some(reference) = links.get(&path.display().to_string()) {
                             let h = reference.value().clone();
-                            // let data = self.0.blobs.store().get_bytes(knf).await?;
                             let data = self.0.blobs.store().get_bytes(h).await?;
-                            return Ok(data);
+                            return Ok(Some(data));
                         }
                     }
-                    Item::Unloaded { hash: _ } => return Err(anyhow!("should already be loaded")),
+                    Item::Unloaded { hash: _ } => return Err(anyhow!("unloaded file")),
                 }
             }
         }
-        Err(anyhow!("no  key!"))
+        Ok(None)
     }
 
     pub fn list_roots(&self) -> Vec<String> {

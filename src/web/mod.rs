@@ -17,14 +17,25 @@ use rocket::get;
 use rocket::response::Responder;
 
 pub mod assets;
+pub mod auth;
 pub mod fixed;
 pub mod services;
 
+// Run these things
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("Web interface", |rocket| async {
         rocket.mount(
             "/",
-            routes![index, message, fixed::dist, viewer, network, notes, nodes],
+            routes![
+                index,
+                message,
+                fixed::dist,
+                viewer,
+                network,
+                notes,
+                nodes,
+                auth::login
+            ],
         )
     })
 }
@@ -113,7 +124,7 @@ pub fn nodes<'r>(node_id: String) -> impl Responder<'r, 'static> {
 #[get("/viewer")]
 pub fn viewer<'r>() -> impl Responder<'r, 'static> {
     GltfPageTemplate {
-        path: "/static/train-diesel-a.glb".to_owned(),
+        path: "/static/gltf/train-diesel-a.glb".to_owned(),
         section: "viewer".to_string(),
     }
 }

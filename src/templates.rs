@@ -45,3 +45,9 @@ pub struct GltfPageTemplate {
     pub path: String,
     pub section: String,
 }
+
+#[derive(Template, WebTemplate)]
+#[template(path = "login.html")]
+pub struct LoginPageTemplate {
+    pub section: String
+}
