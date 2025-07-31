@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use crate::store::FileSet;
 use crate::templates::{
-    GltfPageTemplate, HomePageTemplate, NetworkPageTemplate, NotesPageTemplate,
+    GltfPageTemplate, HomePageTemplate, NetworkPageTemplate, NodePageTemplate, NotesPageTemplate,
 };
 use chrono::Local;
 use iroh_blobs::ticket::BlobTicket;
@@ -24,7 +24,7 @@ pub fn stage() -> AdHoc {
     AdHoc::on_ignite("Web interface", |rocket| async {
         rocket.mount(
             "/",
-            routes![index, message, fixed::dist, viewer, network, notes],
+            routes![index, message, fixed::dist, viewer, network, notes, nodes],
         )
     })
 }
@@ -32,7 +32,7 @@ pub fn stage() -> AdHoc {
 #[get("/")]
 pub fn index<'r>() -> impl Responder<'r, 'static> {
     HomePageTemplate {
-        section: "".to_string()
+        section: "".to_string(),
     }
 }
 
@@ -84,7 +84,9 @@ pub async fn message<'r>(
 
 #[get("/notes")]
 pub fn notes<'r>() -> impl Responder<'r, 'static> {
-    NotesPageTemplate { section: "notes".to_string() }
+    NotesPageTemplate {
+        section: "notes".to_string(),
+    }
 }
 
 #[get("/network")]
@@ -96,7 +98,15 @@ pub fn network<'r>(blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> 
     }
     NetworkPageTemplate {
         nodes: nodes,
-        section: "network".to_string()
+        section: "network".to_string(),
+    }
+}
+
+#[get("/network/<node_id>")]
+pub fn nodes<'r>(node_id: String) -> impl Responder<'r, 'static> {
+    NodePageTemplate {
+        node_id: node_id,
+        section: "network".to_string(),
     }
 }
 
@@ -104,7 +114,6 @@ pub fn network<'r>(blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> 
 pub fn viewer<'r>() -> impl Responder<'r, 'static> {
     GltfPageTemplate {
         path: "/static/train-diesel-a.glb".to_owned(),
-        section: "viewer".to_string()
-
+        section: "viewer".to_string(),
     }
 }

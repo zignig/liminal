@@ -3,7 +3,7 @@
 {% block content %}
 <div class="block">
         {% for node in nodes %}
-        <button class="button">{{node}}</button>
+        <button class="button"><a href="network/{{node}}">{{node}}</a></button>
         {% endfor %}
 </div>
 {% endblock %}
