@@ -9,10 +9,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Parser, Debug)]
 pub struct Args {
-    /// secret key to derive our node id from.
-    #[clap(long)]
-    pub secret_key: Option<String>,
-    /// Activate the web server
     #[clap(short, long)]
     pub web: bool,
     /// Do a full replica

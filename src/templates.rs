@@ -11,7 +11,7 @@ pub struct HomePageTemplate {
 
 #[derive(Template, WebTemplate)]
 #[template(path = "files.html")]
-pub struct FilePageTemplate {
+pub struct  FilePageTemplate {
     pub items: Vec<String>,
     pub path: String,
     pub segments: Vec<String>,

@@ -31,7 +31,7 @@ pub enum Item {
     },
 }
 
-//Return to the file server
+// Return to the file server
 pub enum RenderType {
     File { file_name: String },
     Folder { items: Vec<String> },
@@ -96,7 +96,6 @@ impl FileSet {
                             let mut directories = FsTree::new_dir();
                             let links: DashMap<String, Hash> = DashMap::new();
                             for (path, hash) in collection {
-                                // println!("{:?}", path);
                                 directories = directories.merge(FsTree::from_path_text(&path));
                                 links.insert(path, hash);
                             }
@@ -120,12 +119,17 @@ impl FileSet {
                 if let Some(d) = val {
                     match d {
                         FsTree::Regular => {
+                            // This should return the actual file data. 
+                            // needs to get size , mime type ( mapped from file extension)
                             let name = path.file_name().unwrap().display().to_string();
                             return Ok(Some(RenderType::File {
                                 file_name: name,
                             }));
                         }
                         FsTree::Directory(btree_map) => {
+                            for (path, _) in  btree_map.iter() { 
+                                println!("{:?} {:?}",path.display().to_string(),path.extension());
+                            }
                             let items = btree_map.keys().map(|f| f.display().to_string()).collect();
                             return Ok(Some(RenderType::Folder { items: items }))
                         },

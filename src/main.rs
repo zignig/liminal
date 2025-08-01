@@ -1,3 +1,6 @@
+///! A web interface to iroh and friends.
+///! Using rocket and tokio
+
 use std::{
     net::{Ipv4Addr, SocketAddrV4},
     str::FromStr,
@@ -12,7 +15,8 @@ use iroh_gossip::{
     proto::TopicId,
 };
 use n0_future::task;
-use n0_snafu::{Result, ResultExt};
+
+use n0_snafu::{format_err, Result, ResultExt};
 use n0_watcher::Watcher;
 use std::path::PathBuf;
 use tokio::signal::ctrl_c;
@@ -22,6 +26,7 @@ mod replicate;
 mod store;
 mod templates;
 mod web;
+mod config;
 
 use cli::Command;
 use cli::Ticket;
@@ -48,10 +53,16 @@ async fn main() -> Result<()> {
         }
     };
 
-    // parse or generate our secret key
-    let secret_key = match args.secret_key {
-        None => SecretKey::generate(rand::rngs::OsRng),
-        Some(key) => key.parse()?,
+    // Config DB , anyhow vs snafu is weird
+    let db_res = config::Info::new(&PathBuf::from("data/config.db"));
+    let mut conf = match db_res  {
+        Ok(conf) => conf,
+        Err(_) => return Err(format_err!("bad database!")),
+    };
+    
+    let secret_key = match conf.get_secret_key(){
+        Ok(secret) => secret.to_owned(),
+        Err(_) => return Err(format_err!("Bad secret")),
     };
 
     // build our magic endpoint
@@ -59,14 +70,19 @@ async fn main() -> Result<()> {
         .secret_key(secret_key)
         // .relay_mode(relay_mode)
         .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, args.bind_port))
-        .discovery_local_network()
+        // .discovery_local_network()
         .bind()
         .await?;
+
+    let _ = conf.add_node(endpoint.node_id());
+    let _ = conf.list_nodes();
 
     println!("> our node id: {}", endpoint.node_id());
     for i in endpoint.remote_info_iter() {
         println!("{:?}", i);
     }
+
+
 
     // create the gossip protocol
     let gossip = Gossip::builder().spawn(endpoint.clone());
@@ -84,7 +100,7 @@ async fn main() -> Result<()> {
     let path = PathBuf::from("data/blobs");
     println!("Data store : {}", path.display());
 
-    // Local blob store
+    // Local blob file store
     let store = FsStore::load(path).await.unwrap();
 
     // BLOBS!
