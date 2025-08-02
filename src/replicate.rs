@@ -110,7 +110,7 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) 
 }
 
 pub async fn publish_loop(
-    mut sender: GossipSender,
+    sender: GossipSender,
     blobs: BlobsProtocol,
     secret: SecretKey,
 ) -> Result<()> {

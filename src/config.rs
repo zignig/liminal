@@ -7,7 +7,6 @@ use anyhow::{Result, anyhow};
 use iroh::{NodeId, PublicKey, SecretKey};
 use redb::{Database, Table, TableDefinition, TableHandle, WriteTransaction};
 use std::{fs, path::PathBuf};
-use rocket::config::SecretKey as RocketKey;
 
 const TIME_TABLE: TableDefinition<&str, u64> = TableDefinition::new("timings");
 const NODE_TABLE: TableDefinition<&[u8; 32], &str> = TableDefinition::new("nodes");

@@ -3,9 +3,9 @@
 {% block content %}
 <table class="table is-striped is-hoverable is-fullwidth">
     <tbody>
-        {% for note in notes %}
+        {% for key in keys %}
         <tr>
-            <td><a href="/notes/{{note}}"> {{ note }}</a></td>
+            <td>{{ key }}</td>
         </tr>
         {% endfor %}
     </tbody>

@@ -4,9 +4,7 @@
 use std::str::FromStr;
 
 use crate::store::FileSet;
-use crate::templates::{
-    GltfPageTemplate, HomePageTemplate, NetworkPageTemplate, NodePageTemplate, NotesPageTemplate,
-};
+use crate::templates::{GltfPageTemplate, HomePageTemplate, NetworkPageTemplate, NodePageTemplate};
 use chrono::Local;
 use iroh_blobs::ticket::BlobTicket;
 use iroh_blobs::{BlobsProtocol, HashAndFormat};
@@ -19,6 +17,7 @@ use rocket::response::Responder;
 pub mod assets;
 pub mod auth;
 pub mod fixed;
+pub mod notes;
 pub mod services;
 
 // Run these things
@@ -33,7 +32,8 @@ pub fn stage() -> AdHoc {
                 fixed::favicon,
                 viewer,
                 network,
-                notes,
+                notes::show_notes,
+                notes::show_note,
                 nodes,
                 auth::login
             ],
@@ -92,13 +92,6 @@ pub async fn message<'r>(
     file_set.fill().await;
     println!("Trans info {:#?}", r);
     "should be an error"
-}
-
-#[get("/notes")]
-pub fn notes<'r>() -> impl Responder<'r, 'static> {
-    NotesPageTemplate {
-        section: "notes".to_string(),
-    }
 }
 
 #[get("/network")]

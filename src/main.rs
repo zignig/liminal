@@ -9,10 +9,12 @@ use std::{
 use clap::Parser;
 use iroh::{Endpoint, SecretKey};
 use iroh_blobs::{ALPN as BLOBS_ALPN, Hash, store::fs::FsStore};
+use iroh_docs::{ALPN as DOCS_ALPN, protocol::Docs};
 use iroh_gossip::{
     net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
+
 use n0_future::task;
 
 use n0_snafu::{Result, ResultExt, format_err};
@@ -70,6 +72,7 @@ async fn main() -> Result<()> {
     // build our magic endpoint
     let endpoint = Endpoint::builder()
         .secret_key(secret_key)
+        .discovery_n0()
         .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, args.bind_port))
         .bind()
         .await?;
@@ -82,9 +85,6 @@ async fn main() -> Result<()> {
         println!("{:?}", i);
     }
 
-    // create the gossip protocol
-    let gossip = Gossip::builder().spawn(endpoint.clone());
-
     // print a ticket that includes our own node id and endpoint addresses
     let ticket = {
         let me = endpoint.node_addr().initialized().await;
@@ -93,6 +93,9 @@ async fn main() -> Result<()> {
     };
 
     println!("> ticket to join us: {ticket}");
+
+    // create the gossip protocol
+    let gossip = Gossip::builder().spawn(endpoint.clone());
 
     // Blob data store
     let path = PathBuf::from("data/blobs");
@@ -110,10 +113,18 @@ async fn main() -> Result<()> {
     // Get the file roots
     fileset.fill().await;
 
+    // DOCS !
+    let docs_path = PathBuf::from("data/");
+    let docs = Docs::persistent(docs_path)
+        .spawn(endpoint.clone(), (*blobs).clone(), gossip.clone())
+        .await
+        .unwrap();
+
     // setup router
     let router = iroh::protocol::Router::builder(endpoint.clone())
         .accept(GOSSIP_ALPN, gossip.clone())
         .accept(BLOBS_ALPN, blobs.clone())
+        .accept(DOCS_ALPN, docs.clone())
         .spawn();
 
     // join the gossip topic by connecting to known peers, if any
@@ -162,6 +173,7 @@ async fn main() -> Result<()> {
 
         let _result = rocket::custom(figment)
             // .manage(sender)
+            .manage(docs.clone())
             .manage(fileset.clone())
             .manage(blobs.clone())
             .attach(web::stage())
