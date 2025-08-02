@@ -1,6 +1,5 @@
 ///! A web interface to iroh and friends.
 ///! Using rocket and tokio
-
 use std::{
     net::{Ipv4Addr, SocketAddrV4},
     str::FromStr,
@@ -16,17 +15,17 @@ use iroh_gossip::{
 };
 use n0_future::task;
 
-use n0_snafu::{format_err, Result, ResultExt};
+use n0_snafu::{Result, ResultExt, format_err};
 use n0_watcher::Watcher;
 use std::path::PathBuf;
 use tokio::signal::ctrl_c;
 
 mod cli;
+mod config;
 mod replicate;
 mod store;
 mod templates;
 mod web;
-mod config;
 
 use cli::Command;
 use cli::Ticket;
@@ -42,9 +41,7 @@ async fn main() -> Result<()> {
 
     // parse the cli command
     let peers = match &args.command {
-        Command::Open { topic } => {
-            let topic = topic.unwrap_or_else(|| TopicId::from_bytes(rand::random()));
-            println!("> opening chat room for topic {topic}");
+        Command::Open => {
             vec![]
         }
         Command::Join { ticket } => {
@@ -55,14 +52,17 @@ async fn main() -> Result<()> {
 
     // Config DB , anyhow vs snafu is weird
     let db_res = config::Info::new(&PathBuf::from("data/config.db"));
-    let mut conf = match db_res  {
+    let mut conf = match db_res {
         Ok(conf) => conf,
         Err(_) => return Err(format_err!("bad database!")),
     };
-    
-    let secret_key = match conf.get_secret_key(){
-        Ok(secret) => secret.to_owned(),
-        Err(_) => return Err(format_err!("Bad secret")),
+
+    let secret_key = match &args.random {
+        true => SecretKey::generate(rand::rngs::OsRng),
+        false => match conf.get_secret_key() {
+            Ok(secret) => secret.to_owned(),
+            Err(_) => return Err(format_err!("Bad secret")),
+        },
     };
 
     // build our magic endpoint
@@ -81,8 +81,6 @@ async fn main() -> Result<()> {
     for i in endpoint.remote_info_iter() {
         println!("{:?}", i);
     }
-
-
 
     // create the gossip protocol
     let gossip = Gossip::builder().spawn(endpoint.clone());
@@ -127,6 +125,8 @@ async fn main() -> Result<()> {
         println!("> trying to connect to {} peers...", peers.len());
         // add the peer addrs from the ticket to our endpoint's addressbook so that they can be dialed
         for peer in peers.into_iter() {
+            // Stash the peers in the config
+            let _ = conf.add_node(peer.node_id);
             endpoint.add_node_addr(peer)?;
         }
     };
@@ -139,7 +139,7 @@ async fn main() -> Result<()> {
 
     // Move all this into the replicate
     // subscribe and print loop
-    // TODO : this should be a construct 
+    // TODO : this should be a construct
 
     task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
     task::spawn(replicate::publish_loop(
@@ -148,7 +148,7 @@ async fn main() -> Result<()> {
         endpoint.secret_key().clone(),
     ));
 
-    // Web interface 
+    // Web interface
 
     if args.web {
         println!("starting web server ");
@@ -171,7 +171,7 @@ async fn main() -> Result<()> {
         // Just run and wait.
         ctrl_c().await.unwrap();
     }
-    
+
     // Shutdown
     router.shutdown().await.e()?;
     Ok(())

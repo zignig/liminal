@@ -1,5 +1,5 @@
 //! Keep authors and documents, base node info in a redb.
-//! TODO : unfinished.
+//! Stores secret key and some peers for now.
 
 use anyhow::{Result, anyhow};
 use iroh::{NodeAddr, NodeId, PublicKey, SecretKey};
@@ -7,7 +7,7 @@ use redb::{
     Database, DatabaseError, Error, ReadableTable, ReadableTableMetadata, Table, TableDefinition,
     TableHandle, WriteTransaction,
 };
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 const TIME_TABLE: TableDefinition<&str, u64> = TableDefinition::new("timings");
 const NODE_TABLE: TableDefinition<&[u8; 32], &str> = TableDefinition::new("nodes");
@@ -38,6 +38,7 @@ impl<'tx> Tables<'tx> {
 
 impl Info {
     pub fn new(name: &PathBuf) -> Result<Self> {
+        fs::create_dir_all(name.parent().unwrap())?;
         let db = match Database::create(name) {
             Ok(database) => database,
             Err(_) => return Err(anyhow!("bad database")),

@@ -9,11 +9,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Parser, Debug)]
 pub struct Args {
+    // Random node id 
+    #[clap(short,long)]
+    pub random: bool,
     #[clap(short, long)]
     pub web: bool,
-    /// Do a full replica
+    /// Do a full replica of all the data 
     #[clap(short, long)]
-    pub replica: bool,
+    pub duplicate: bool,
     /// Set your nickname.
     #[clap(short, long)]
     pub name: Option<String>,
@@ -26,13 +29,7 @@ pub struct Args {
 
 #[derive(Parser, Debug)]
 pub enum Command {
-    /// Open a chat room for a topic and print a ticket for others to join.
-    ///
-    /// If no topic is provided, a new topic will be created.
-    Open {
-        /// Optionally set the topic id (64 bytes, as hex string).
-        topic: Option<TopicId>,
-    },
+    Open,
     /// Join a chat room from a ticket.
     Join {
         /// The ticket, as base32 string

@@ -106,6 +106,7 @@ pub fn network<'r>(blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> 
     let remotes = blobs.endpoint().remote_info_iter();
     let mut nodes: Vec<String> = Vec::new();
     for i in remotes {
+        println!("{:#?}",i);
         nodes.push(i.node_id.fmt_short())
     }
     NetworkPageTemplate {
