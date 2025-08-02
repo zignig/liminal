@@ -1,13 +1,11 @@
 //! Serves static files, with a cache header.
-//! 
+//!
 
-use rocket::http::uri::fmt::FromUriParam;
-use rocket::http::{ContentType, Header};
+use rocket::http::ContentType;
 use rocket::response::Responder;
 use rocket::{Response, get};
 use rust_embed::{Embed, EmbeddedFile};
 
-use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -56,8 +54,8 @@ pub fn dist(file: PathBuf) -> Option<CacheControl> {
 }
 
 #[get("/favicon.ico")]
-pub fn favicon() -> Option<CacheControl> { 
-    let file  = PathBuf::from_str("img/favicon.ico").unwrap();
+pub fn favicon() -> Option<CacheControl> {
+    let file = PathBuf::from_str("img/favicon.ico").unwrap();
     let asset = Asset::get(&file.display().to_string())?;
     let content_type = file
         .extension()

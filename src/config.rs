@@ -1,26 +1,35 @@
 //! Keep authors and documents, base node info in a redb.
 //! Stores secret key and some peers for now.
+//! The layout for this is stolen from the persistant store
+//! in iroh-blobs. Seemed like a good layout.
 
 use anyhow::{Result, anyhow};
-use iroh::{NodeAddr, NodeId, PublicKey, SecretKey};
-use redb::{
-    Database, DatabaseError, Error, ReadableTable, ReadableTableMetadata, Table, TableDefinition,
-    TableHandle, WriteTransaction,
-};
+use iroh::{NodeId, PublicKey, SecretKey};
+use redb::{Database, Table, TableDefinition, TableHandle, WriteTransaction};
 use std::{fs, path::PathBuf};
+use rocket::config::SecretKey as RocketKey;
 
 const TIME_TABLE: TableDefinition<&str, u64> = TableDefinition::new("timings");
 const NODE_TABLE: TableDefinition<&[u8; 32], &str> = TableDefinition::new("nodes");
-const SECRET_TABLE: TableDefinition<&[u8; 32], &[u8; 32]> = TableDefinition::new("secrets");
+const SECRET_TABLE: TableDefinition<u32, &[u8; 32]> = TableDefinition::new("secrets");
 
 pub struct Info {
     db: Database,
+    current: CurrentTransaction,
+}
+
+#[derive(Default)]
+enum CurrentTransaction {
+    #[default]
+    None,
+    Read,
+    Write,
 }
 
 pub struct Tables<'tx> {
     pub timing: Table<'tx, &'static str, u64>,
     pub nodes: Table<'tx, &'static [u8; 32], &'static str>,
-    pub secrets: Table<'tx, &'static [u8; 32], &'static [u8; 32]>,
+    pub secrets: Table<'tx, u32, &'static [u8; 32]>,
 }
 
 impl<'tx> Tables<'tx> {
@@ -50,7 +59,10 @@ impl Info {
         for i in read_tx.list_tables()? {
             println!("{:?}", i.name());
         }
-        Ok(Self { db: db })
+        Ok(Self {
+            db: db,
+            current: CurrentTransaction::default(),
+        })
     }
 
     pub fn add_node(&mut self, node: PublicKey) -> Result<()> {
@@ -75,18 +87,36 @@ impl Info {
     pub fn get_secret_key(&self) -> Result<SecretKey> {
         let read_tx = self.db.begin_read()?;
         let secrets = read_tx.open_table(SECRET_TABLE)?;
-        if let Some((key, _)) = secrets.first()? {
-            return Ok(SecretKey::from_bytes(key.value()));
+        if let Some(data) = secrets.get(0)? {
+            return Ok(SecretKey::from_bytes(data.value()));
         } else {
-            println!("Make a new secret");
+            println!("Make a new secret key");
             let write_tx = self.db.begin_write()?;
             let secret = SecretKey::generate(rand::rngs::OsRng);
             {
                 let mut secrets = write_tx.open_table(SECRET_TABLE)?;
-                secrets.insert(&secret.to_bytes(), &secret.to_bytes())?;
+                secrets.insert(0, &secret.to_bytes())?;
             }
             write_tx.commit()?;
             return Ok(secret);
+        }
+    }
+
+    pub fn rocket_key(&self) -> Result<[u8;32]> {
+        let read_tx = self.db.begin_read()?;
+        let secrets = read_tx.open_table(SECRET_TABLE)?;
+        if let Some(data) = secrets.get(1)? {
+            return Ok(data.value().clone());
+        } else {
+            println!("Create secret cookie key");
+            let write_tx = self.db.begin_write()?;
+            let secret = SecretKey::generate(rand::rngs::OsRng);
+            {
+                let mut secrets = write_tx.open_table(SECRET_TABLE)?;
+                secrets.insert(1, &secret.to_bytes())?;
+            }
+            write_tx.commit()?;
+            return Ok(secret.to_bytes());
         }
     }
 }

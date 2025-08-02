@@ -1,10 +1,10 @@
-#[cfg(not(feature = "fs-err"))]
+// #[cfg(not(feature = "fs-err"))]
 pub(crate) use std::fs;
 use std::path::{Path, PathBuf};
 
 use file_type_enum::FileType;
-#[cfg(feature = "fs-err")]
-pub(crate) use fs_err as fs;
+// #[cfg(feature = "fs-err")]
+// pub(crate) use fs_err as fs;
 
 use crate::{Error, Result};
 

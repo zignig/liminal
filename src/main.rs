@@ -151,11 +151,13 @@ async fn main() -> Result<()> {
     // Web interface
 
     if args.web {
+        let rocket_secret_key: [u8; 32] = conf.rocket_key().unwrap();
         println!("starting web server ");
         // start the web server
         let figment = rocket::Config::figment()
             .merge(("address", "0.0.0.0"))
             .merge(("port", 8080))
+            .merge(("secret_key", rocket_secret_key))
             .merge(("log_level", "normal"));
 
         let _result = rocket::custom(figment)

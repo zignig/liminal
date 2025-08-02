@@ -724,17 +724,17 @@ impl FsTree {
     }
 }
 
-#[cfg(feature = "libc-file-type")]
-impl FsTree {
-    /// Returns the file type equivalent [`libc::mode_t`] value.
-    pub fn as_mode_t(&self) -> libc::mode_t {
-        match self {
-            Self::Regular => libc::S_IFREG,
-            Self::Directory(_) => libc::S_IFDIR,
-            Self::Symlink(_) => libc::S_IFCHR,
-        }
-    }
-}
+// #[cfg(feature = "libc-file-type")]
+// impl FsTree {
+//     /// Returns the file type equivalent [`libc::mode_t`] value.
+//     pub fn as_mode_t(&self) -> libc::mode_t {
+//         match self {
+//             Self::Regular => libc::S_IFREG,
+//             Self::Directory(_) => libc::S_IFDIR,
+//             Self::Symlink(_) => libc::S_IFCHR,
+//         }
+//     }
+// }
 
 impl<P> Index<P> for FsTree
 where
