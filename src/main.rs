@@ -57,6 +57,8 @@ async fn main() -> Result<()> {
         Err(_) => return Err(format_err!("bad database!")),
     };
 
+    // Random cli entry will generate a new node id
+    // Or use a fixed one from confi
     let secret_key = match &args.random {
         true => SecretKey::generate(rand::rngs::OsRng),
         false => match conf.get_secret_key() {
@@ -68,9 +70,7 @@ async fn main() -> Result<()> {
     // build our magic endpoint
     let endpoint = Endpoint::builder()
         .secret_key(secret_key)
-        // .relay_mode(relay_mode)
         .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, args.bind_port))
-        // .discovery_local_network()
         .bind()
         .await?;
 

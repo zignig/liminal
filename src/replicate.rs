@@ -3,16 +3,15 @@
 //! TODO : it needs a Downloader and an Actor loop
 //! 
 
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use bytes::Bytes;
 use chrono::Local;
-use dashmap::DashMap;
-use iroh::{NodeAddr, PublicKey, SecretKey};
+use iroh::{PublicKey, SecretKey};
 use iroh_blobs::{BlobsProtocol, Hash, format::collection::Collection, hashseq::HashSeq};
 
 use iroh_gossip::
-    api::{Event, GossipApi, GossipReceiver, GossipSender}
+    api::{Event, GossipReceiver, GossipSender}
 ;
 
 use ed25519_dalek::Signature;
@@ -21,36 +20,36 @@ use n0_future::StreamExt;
 use n0_snafu::{Result, ResultExt};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
-pub struct ReplicaGossip(Arc<Inner>);
+// #[derive(Debug, Clone)]
+// pub struct ReplicaGossip(Arc<Inner>);
 
-#[derive(Debug, Clone)]
-pub struct Inner {
-    gossip: GossipApi,
-    blobs: BlobsProtocol,
-    roots: DashMap<Hash, Vec<NodeAddr>>,
-    expire: DashMap<u64,Hash>
-}
+// #[derive(Debug, Clone)]
+// pub struct Inner {
+//     gossip: GossipApi,
+//     blobs: BlobsProtocol,
+//     roots: DashMap<Hash, Vec<NodeAddr>>,
+//     expire: DashMap<u64,Hash>
+// }
 
-impl ReplicaGossip {
-    fn new(blobs: BlobsProtocol, gossip: GossipApi) -> Self {
-        Self(Arc::new(Inner {
-            gossip: gossip,
-            blobs: blobs,
-            roots: DashMap::new(),
-            expire: DashMap::new()
-        }))
-    }
+// impl ReplicaGossip {
+//     fn new(blobs: BlobsProtocol, gossip: GossipApi) -> Self {
+//         Self(Arc::new(Inner {
+//             gossip: gossip,
+//             blobs: blobs,
+//             roots: DashMap::new(),
+//             expire: DashMap::new()
+//         }))
+//     }
 
-    fn run(self) {
-        // task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
-        // task::spawn(replicate::publish_loop(
-        //     sender,
-        //     blobs.clone(),
-        //     endpoint.secret_key().clone(),
-        // ));
-    }
-}
+//     fn run(self) {
+//         // task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
+//         // task::spawn(replicate::publish_loop(
+//         //     sender,
+//         //     blobs.clone(),
+//         //     endpoint.secret_key().clone(),
+//         // ));
+//     }
+// }
 
 pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) -> Result<()> {
     // init a peerid -> name hashmap
@@ -102,8 +101,8 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) 
                     //     println!("{} - {} ", s, h);
                     // }
                 }
-                Message::Whohas { key } => {},
-                Message::IHave { key  } => {},
+                Message::Whohas { key: _ } => {},
+                Message::IHave { key: _  } => {},
             }
         }
     }

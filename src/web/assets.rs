@@ -1,11 +1,8 @@
 //! Get assets in blobs by collection path
 //!
 
-use rocket::http::{ContentType, Status};
 use rocket::response::Responder;
-use rocket::response::Response;
 use rocket::{State, fairing::AdHoc};
-use std::io::Cursor;
 use std::path::PathBuf;
 
 use crate::{
@@ -89,7 +86,7 @@ pub async fn inner_files<'r>(
         Ok(res) => {
             if let Some(item) = res {
                 match item {
-                    RenderType::File { file_name } => todo!(),
+                    RenderType::File { file_name: _  } => todo!(),
                     RenderType::Folder { items } => {
                         let mut full_path = PathBuf::new();
                         full_path.push(&collection);
