@@ -40,8 +40,8 @@ pub async fn show_notes<'r>(docs: &State<Docs>) -> impl Responder<'r, 'static> {
 // TODO doc id's should not be used here
 async fn get_doc(doc_id: &str, docs: &Docs) -> Result<Vec<Entry>> {
     let default_author = docs.author_default().await?;
-    let dec_doc_id = data_encoding::BASE32_NOPAD.decode(doc_id.as_bytes())?.as_bytes(); 
-    let id = NamespaceId::from(&dec_doc_id);
+    let dec_doc_id: Vec<u8> = data_encoding::BASE32_NOPAD.decode(doc_id.as_bytes())?;
+    let id = NamespaceId::from_str(str::from_utf8(&dec_doc_id)?)?;
     let doc_op = docs.open(id).await?;
     if let Some(doc) = doc_op {
         doc.set_bytes(default_author, "bork", "bork").await?;
@@ -54,7 +54,7 @@ async fn get_doc(doc_id: &str, docs: &Docs) -> Result<Vec<Entry>> {
 
 #[get("/notes/<doc_id>")]
 pub async fn show_note<'r>(doc_id: &str, docs: &State<Docs>) -> impl Responder<'r, 'static> {
-    let doc_res = get_doc(doc_id, docs).await;
+    let doc_res =  get_doc(doc_id, docs).await;
     let keys = match doc_res {
         Ok(keys) => keys
             .iter()
