@@ -87,7 +87,7 @@ async fn main() -> Result<()> {
 
     // print a ticket that includes our own node id and endpoint addresses
     let ticket = {
-        let me = endpoint.node_addr().initialized().await?;
+        let me = endpoint.node_addr().initialized().await;
         let peers = peers.iter().cloned().chain([me]).collect();
         Ticket { peers }
     };
