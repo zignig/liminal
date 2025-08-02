@@ -118,7 +118,7 @@ pub fn network<'r>(blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> 
 pub fn nodes<'r>(node_id: String, blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> {
     let mut remote = blobs.endpoint().remote_info_iter();
     let info = remote.find(|node| node_id == node.node_id.fmt_short());
-    println!("{:#?}",info);
+    println!("{:#?}", info);
     NodePageTemplate {
         node_id: node_id,
         section: "network".to_string(),
