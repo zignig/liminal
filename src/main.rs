@@ -28,6 +28,7 @@ mod replicate;
 mod store;
 mod templates;
 mod web;
+mod notes;
 
 use cli::Command;
 use cli::Ticket;
@@ -141,6 +142,11 @@ async fn main() -> Result<()> {
             endpoint.add_node_addr(peer)?;
         }
     };
+
+    // Testing notes interface
+    let mut n = notes::Notes::new(None,blobs.clone(),docs.clone()).await.unwrap();
+    n.add("testing".to_string(),"longer test".to_string()).await.unwrap();
+    n.add("blerg".to_string(),"longer test".to_string()).await.unwrap();
 
     // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());

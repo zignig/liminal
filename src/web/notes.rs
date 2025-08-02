@@ -1,17 +1,14 @@
-use std::ptr::dangling;
-use std::str::FromStr;
+// Notes web interface
 
 use crate::templates::{NotePageTemplate, NotesPageTemplate};
 use anyhow::{Result, anyhow};
 
-use iroh_docs::api::Doc;
 use iroh_docs::protocol::Docs;
 use iroh_docs::store::Query;
 use iroh_docs::{CapabilityKind, Entry, NamespaceId};
 
 use n0_future::StreamExt;
 use rocket::State;
-use rocket::mtls::oid::asn1_rs::nom::AsBytes;
 use rocket::response::Responder;
 
 async fn get_all_docs(docs: &Docs) -> Result<Vec<(NamespaceId, CapabilityKind)>> {
@@ -39,7 +36,7 @@ pub async fn show_notes<'r>(docs: &State<Docs>) -> impl Responder<'r, 'static> {
 
 // TODO doc id's should not be used here
 async fn get_doc(doc_id: &str, docs: &Docs) -> Result<Vec<Entry>> {
-    let default_author = docs.author_default().await?;
+    // let default_author = docs.author_default().await?;
     let dec_doc_id: [u8; 32] = data_encoding::BASE32_NOPAD
         .decode(doc_id.as_bytes())?
         .try_into()
@@ -47,7 +44,7 @@ async fn get_doc(doc_id: &str, docs: &Docs) -> Result<Vec<Entry>> {
     let id = NamespaceId::from(&dec_doc_id);
     let doc_op = docs.open(id).await?;
     if let Some(doc) = doc_op {
-        doc.set_bytes(default_author, "fnord", "this is a test").await?;
+        // doc.set_bytes(default_author, "fnord", "this is a test").await?;
         let query = Query::all().build();
         let entries: Vec<Entry> = doc.get_many(query).await?.try_collect().await?;
         return Ok(entries);
