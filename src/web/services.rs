@@ -1,5 +1,5 @@
 //! This _will_ hold the external services
-//! Blender, reder GLTF and icons
+//! Blender, render GLTF and icons
 //! Perhaps ....
 //! Freecad , Kicad  ... remains to be seen.
 

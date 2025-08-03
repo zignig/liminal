@@ -46,7 +46,7 @@ impl Note {
 
     fn missing_note(id: String) -> Self {
         Self {
-            text: String::from("Missing Content"),
+            text: String::from(""),
             created: 0,
             is_delete: false,
             id,

@@ -43,7 +43,7 @@ pub async fn show_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder
     let doc_res = notes.get_note(doc_id.to_string()).await;
     let (title, value) = match doc_res {
         Ok(doc) => (doc.id, doc.text),
-        Err(_) => ("Bad Note".to_string(), "Note error".to_string()),
+        Err(_) => todo!()
     };
     let md =
         markdown::to_html_with_options(&value, &markdown::Options::gfm()).expect("Bad Markdown");
