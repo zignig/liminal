@@ -11,6 +11,7 @@ use std::{fs, path::PathBuf};
 const TIME_TABLE: TableDefinition<&str, u64> = TableDefinition::new("timings");
 const NODE_TABLE: TableDefinition<&[u8; 32], &str> = TableDefinition::new("nodes");
 const SECRET_TABLE: TableDefinition<u32, &[u8; 32]> = TableDefinition::new("secrets");
+const DOCS_TABLE: TableDefinition<&str, &[u8; 32]> = TableDefinition::new("doc_pointers");
 
 pub struct Info {
     db: Database,
@@ -29,6 +30,7 @@ pub struct Tables<'tx> {
     pub timing: Table<'tx, &'static str, u64>,
     pub nodes: Table<'tx, &'static [u8; 32], &'static str>,
     pub secrets: Table<'tx, u32, &'static [u8; 32]>,
+    pub docs: Table<'tx, &'static str, &'static [u8; 32]>,
 }
 
 impl<'tx> Tables<'tx> {
@@ -36,10 +38,13 @@ impl<'tx> Tables<'tx> {
         let timing = tx.open_table(TIME_TABLE)?;
         let nodes = tx.open_table(NODE_TABLE)?;
         let secrets = tx.open_table(SECRET_TABLE)?;
+        let docs = tx.open_table(DOCS_TABLE)?;
+
         Ok(Self {
             timing,
             nodes,
             secrets,
+            docs,
         })
     }
 }
@@ -101,7 +106,7 @@ impl Info {
         }
     }
 
-    pub fn rocket_key(&self) -> Result<[u8;32]> {
+    pub fn rocket_key(&self) -> Result<[u8; 32]> {
         let read_tx = self.db.begin_read()?;
         let secrets = read_tx.open_table(SECRET_TABLE)?;
         if let Some(data) = secrets.get(1)? {
@@ -117,5 +122,29 @@ impl Info {
             write_tx.commit()?;
             return Ok(secret.to_bytes());
         }
+    }
+
+    pub fn get_docs_key(&self, name: &str) -> Result<[u8; 32]> {
+        let read_tx = self.db.begin_read()?;
+        let docs = read_tx.open_table(DOCS_TABLE)?;
+        if let Some(data) = docs.get(name)? {
+            return Ok(data.value().clone());
+        } else {
+            return Err(anyhow!("key does not exist"));
+        }
+    }
+
+    pub fn set_docs_key(&self, name: &str, value: [u8; 32]) -> Result<()> {
+        let write_tx = self.db.begin_write()?;
+        {
+            let mut docs = write_tx.open_table(DOCS_TABLE)?;
+            docs.insert(name, &value)?;
+        }
+        write_tx.commit()?;
+        Ok(())
+    }
+
+    pub fn get_notes_id(&self) -> Result<[u8; 32]> {
+        self.get_docs_key("notes")
     }
 }

@@ -39,13 +39,13 @@
         {% include "menu.html" %}
         <div class="columns">
             <aside class="column is-2 aside menu">
-                {% block actions %}
                 <p class="menu-label">Actions</p>
                 <ul class="menu-list">
+                    {% block actions %}
                     <li><a>Yoink</a></li>
                     <li><a>Yeet</a></li>
+                    {% endblock actions %}
                 </ul>
-                {% endblock actions %}
             </aside>
             <div class="column is-10">
                 <div>

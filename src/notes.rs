@@ -2,12 +2,14 @@
 //  Based upon the tauri to example
 // https://github.com/n0-computer/iroh-examples/blob/main/tauri-todos/src-tauri/src/todos.rs
 
-use std::str::FromStr;
+use std::{
+    cmp::Reverse, ops::{Deref, DerefMut}, str::FromStr, sync::Arc
+};
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 use bytes::Bytes;
 use chrono::Utc;
-use iroh_blobs::{api::blobs::Blobs, BlobsProtocol};
+use iroh_blobs::{BlobsProtocol, api::blobs::Blobs};
 use iroh_docs::{
     AuthorId, DocTicket, Entry,
     api::{Doc, protocol::ShareMode},
@@ -15,6 +17,7 @@ use iroh_docs::{
     protocol::Docs,
     store::Query,
 };
+
 
 use n0_future::{Stream, StreamExt};
 
@@ -54,7 +57,13 @@ impl Note {
     }
 }
 
-pub struct Notes {
+// Notes outer
+#[derive(Debug, Clone)]
+pub struct Notes(Arc<Inner>);
+
+// Inner hiding behind the arc
+#[derive(Debug, Clone)]
+pub struct Inner {
     blobs: BlobsProtocol,
     docs: Docs,
     doc: Doc,
@@ -74,24 +83,46 @@ impl Notes {
         };
         let ticket = doc.share(ShareMode::Write, Default::default()).await?;
 
-        Ok(Self {
+        Ok(Self(Arc::new(Inner {
             blobs,
             docs,
             doc,
             ticket,
             author,
-        })
+        })))
+    }
+
+    pub async fn from_id(id: [u8; 32], blobs: BlobsProtocol, docs: Docs) -> Result<Self> {
+        let doc = docs.open(id.into()).await?;
+        let doc = match doc {
+            Some(doc) => doc,
+            None => return Err(anyhow!("Doc does not exist")),
+        };
+        let ticket = doc.share(ShareMode::Write, Default::default()).await?;
+        // TODO , save the author key in config ( just create a new one for now)
+        let author = docs.author_create().await?;
+        Ok(Self(Arc::new(Inner {
+            blobs,
+            docs,
+            doc,
+            ticket,
+            author,
+        })))
+    }
+
+    pub fn id(&self) -> [u8; 32] {
+        self.0.doc.id().to_bytes()
     }
 
     pub fn ticket(&self) -> String {
-        self.ticket.to_string()
+        self.0.ticket.to_string()
     }
 
     pub async fn doc_subscribe(&self) -> Result<impl Stream<Item = Result<LiveEvent>> + use<>> {
-        self.doc.subscribe().await
+        self.0.doc.subscribe().await
     }
 
-    pub async fn add(&mut self, id: String, text: String) -> Result<()> {
+    pub async fn add(&self, id: String, text: String) -> Result<()> {
         if text.len() > MAX_TEXT_LEN {
             bail!("text is too long, max size is {MAX_TEXT_LEN}");
         };
@@ -102,35 +133,70 @@ impl Notes {
             created,
             is_delete: false,
         };
+
         self.insert_bytes(id.as_bytes(), note.as_bytes()?).await
     }
 
     pub async fn get_notes(&self) -> Result<Vec<Note>> {
-        let entries = self.doc.get_many(Query::single_latest_per_key()).await?;
+        let entries = self.0.doc.get_many(Query::single_latest_per_key()).await?;
         let mut notes = Vec::new();
-        // TODO remove once entries are unpin ! 
+        // TODO remove once entries are unpin !
         tokio::pin!(entries);
         while let Some(entry) = entries.next().await {
-                let entry = entry?;
-                let note = self.note_from_entry(&entry).await?;
-                if !note.is_delete {
-                    notes.push(note)
-                }
+            let entry = entry?;
+            let note = self.note_from_entry(&entry).await?;
+            if !note.is_delete {
+                notes.push(note)
+            }
         }
-        notes.sort_by_key(|n| n.created);
+        notes.sort_by_key(|n| Reverse(n.created));
         Ok(notes)
     }
 
+    pub async fn get_note(&self, id: String) -> Result<Note> {
+        let entry_option = self
+            .0
+            .doc
+            .get_one(Query::single_latest_per_key().key_exact(&id))
+            .await?;
+        match entry_option {
+            Some(entry) => self.note_from_entry(&entry).await,
+            None => Ok(Note::missing_note(id.clone())),
+        }
+    }
+
+    pub async fn update_note(&self, id: String, text: String) -> Result<()> {
+        if text.len() > MAX_TEXT_LEN {
+            bail!("text is too long, max size is {MAX_TEXT_LEN}");
+        };
+        let mut note = self.get_note(id.clone()).await?;
+        note.text = text;
+        self.update_bytes(id,note).await
+    }
+
+    pub async fn set_delete(&self, id:String) -> Result<()>{
+        let mut note = self.get_note(id.clone()).await?;
+        note.is_delete = true;
+        self.update_bytes(id,note).await
+    }
+
+    // Doc data manipulation
     async fn insert_bytes(&self, key: impl AsRef<[u8]>, value: Bytes) -> Result<()> {
-        self.doc
-            .set_bytes(self.author, key.as_ref().to_vec(), value)
+        self.0
+            .doc
+            .set_bytes(self.0.author, key.as_ref().to_vec(), value)
             .await?;
         Ok(())
     }
 
+    async fn update_bytes(&self, key: impl AsRef<[u8]>, note: Note) -> Result<()> {
+        let content = note.as_bytes()?;
+        self.insert_bytes(key, content).await
+    }
+    
     async fn note_from_entry(&self, entry: &Entry) -> Result<Note> {
         let id = String::from_utf8(entry.key().to_owned()).context("invalid key")?;
-        match self.blobs.get_bytes(entry.content_hash()).await {
+        match self.0.blobs.get_bytes(entry.content_hash()).await {
             Ok(b) => Note::from_bytes(b),
             Err(_) => Ok(Note::missing_note(id)),
         }

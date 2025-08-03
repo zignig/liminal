@@ -3,11 +3,17 @@
 {% block content %}
 <table class="table is-striped is-hoverable is-fullwidth">
     <tbody>
-        {% for key in keys %}
+        {% for note in notes %}
         <tr>
-            <td>{{ key }}</td>
+            <td><a href="/notes/show/{{note}}"> {{ note }}</a></td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+{% endblock %}
+
+{% block actions %}
+<li>
+    <a href="/notes/create">Create</a>
+</li>
 {% endblock %}

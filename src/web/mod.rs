@@ -32,8 +32,6 @@ pub fn stage() -> AdHoc {
                 fixed::favicon,
                 viewer,
                 network,
-                notes::show_notes,
-                notes::show_note,
                 nodes,
                 auth::login
             ],

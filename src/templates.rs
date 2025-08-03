@@ -19,19 +19,36 @@ pub struct  FilePageTemplate {
     pub section: String,
 }
 
+// Notes interface 
 #[derive(Template, WebTemplate)]
-#[template(path = "notes.html")]
+#[template(path = "notes/notes.html")]
 pub struct NotesPageTemplate {
     pub notes: Vec<String>,
     pub section: String,
 }
 
 #[derive(Template, WebTemplate)]
-#[template(path = "note.html")]
+#[template(path = "notes/note.html")]
 pub struct NotePageTemplate {
-    pub keys: Vec<String>,
+    pub title: String,
+    pub text: String,
     pub section: String,
 }
+
+#[derive(Template, WebTemplate)]
+#[template(path = "notes/create.html")]
+pub struct NoteCreateTemplate {
+    pub section: String,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "notes/edit.html")]
+pub struct NoteEditTemplate {
+    pub title: String,
+    pub text: String,
+    pub section: String,
+}
+// End notes interface 
 
 #[derive(Template, WebTemplate)]
 #[template(path = "network.html")]

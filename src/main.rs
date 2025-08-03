@@ -24,11 +24,11 @@ use tokio::signal::ctrl_c;
 
 mod cli;
 mod config;
+mod notes;
 mod replicate;
 mod store;
 mod templates;
 mod web;
-mod notes;
 
 use cli::Command;
 use cli::Ticket;
@@ -144,9 +144,24 @@ async fn main() -> Result<()> {
     };
 
     // Testing notes interface
-    let mut n = notes::Notes::new(None,blobs.clone(),docs.clone()).await.unwrap();
-    n.add("testing".to_string(),"longer test".to_string()).await.unwrap();
-    n.add("blerg".to_string(),"longer test".to_string()).await.unwrap();
+    // Stores the doc id in the config and makes a new one
+    // if it is not there.
+    let base_notes = match conf.get_notes_id() {
+        Ok(id) => notes::Notes::from_id(id, blobs.clone(), docs.clone())
+            .await
+            .unwrap(),
+        Err(_) => {
+            let n = notes::Notes::new(None, blobs.clone(), docs.clone())
+                .await
+                .unwrap();
+            let _ = conf.set_docs_key("notes",n.id());
+            n
+        }
+    };
+
+    // base_notes.add("test".to_string(),"test_data".to_string()).await.unwrap();
+    // base_notes.add("chicken wings".to_string(),"MMM tasty".to_string()).await.unwrap();
+    
 
     // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
@@ -179,12 +194,14 @@ async fn main() -> Result<()> {
 
         let _result = rocket::custom(figment)
             // .manage(sender)
+            .manage(base_notes.clone())
             .manage(docs.clone())
             .manage(fileset.clone())
             .manage(blobs.clone())
             .attach(web::stage())
             .attach(web::assets::stage())
             .attach(web::services::stage())
+            .attach(web::notes::stage())
             .launch()
             .await;
     } else {
