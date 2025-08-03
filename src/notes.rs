@@ -2,11 +2,7 @@
 //  Based upon the tauri to example
 // https://github.com/n0-computer/iroh-examples/blob/main/tauri-todos/src-tauri/src/todos.rs
 
-use std::{
-    cmp::Reverse,
-    str::FromStr,
-    sync::Arc,
-};
+use std::{cmp::Reverse, str::FromStr, sync::Arc};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use bytes::Bytes;
