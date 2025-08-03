@@ -7,7 +7,7 @@ use std::{
 
 //use futures_lite::StreamExt;
 use clap::Parser;
-use iroh::{Endpoint, SecretKey};
+use iroh::{Endpoint, NodeAddr, NodeId, SecretKey};
 use iroh_blobs::{ALPN as BLOBS_ALPN, Hash, store::fs::FsStore};
 use iroh_docs::{ALPN as DOCS_ALPN, protocol::Docs};
 use iroh_gossip::{
@@ -129,8 +129,8 @@ async fn main() -> Result<()> {
         .spawn();
 
     // join the gossip topic by connecting to known peers, if any
+    let peer_ids: Vec<NodeId> = peers.iter().map(|p| p.node_id).collect();
 
-    let peer_ids = peers.iter().map(|p| p.node_id).collect();
     if peers.is_empty() {
         println!("> waiting for peers to join us...");
     } else {
@@ -154,31 +154,38 @@ async fn main() -> Result<()> {
             let n = notes::Notes::new(None, blobs.clone(), docs.clone())
                 .await
                 .unwrap();
-            let _ = conf.set_docs_key("notes",n.id());
+            let _ = conf.set_docs_key("notes", n.id());
             n
         }
     };
 
     // base_notes.add("test".to_string(),"test_data".to_string()).await.unwrap();
     // base_notes.add("chicken wings".to_string(),"MMM tasty".to_string()).await.unwrap();
-    
 
     // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
 
-    let (sender, receiver) = gossip.subscribe(topic, peer_ids).await?.split();
+    // let (sender, receiver) = gossip.subscribe(topic, peer_ids.clone()).await?.split();
     println!("> connected!");
+
+    // Replica gossip
+    let mut replica =
+        replicate::ReplicaGossip::new(topic, blobs.clone(), gossip.clone(), peer_ids.clone())
+            .await
+            .unwrap();
+
+    replica.run();
 
     // Move all this into the replicate
     // subscribe and print loop
     // TODO : this should be a construct
+    // task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
 
-    task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
-    task::spawn(replicate::publish_loop(
-        sender,
-        blobs.clone(),
-        endpoint.secret_key().clone(),
-    ));
+    // task::spawn(replicate::publish_loop(
+    //     sender,
+    //     blobs.clone(),
+    //     endpoint.secret_key().clone(),
+    // ));
 
     // Web interface
 
@@ -193,7 +200,6 @@ async fn main() -> Result<()> {
             .merge(("log_level", "normal"));
 
         let _result = rocket::custom(figment)
-            // .manage(sender)
             .manage(base_notes.clone())
             .manage(docs.clone())
             .manage(fileset.clone())

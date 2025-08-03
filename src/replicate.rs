@@ -1,57 +1,99 @@
 //! This is a gossip channel that keeps a list of hashes
-//! 
+//!
 //! TODO : it needs a Downloader and an Actor loop
-//! 
+//!
 
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use bytes::Bytes;
 use chrono::Local;
-use iroh::{PublicKey, SecretKey};
+use dashmap::DashMap;
+use iroh::{NodeAddr, PublicKey, SecretKey};
 use iroh_blobs::{BlobsProtocol, Hash, format::collection::Collection, hashseq::HashSeq};
 
-use iroh_gossip::
-    api::{Event, GossipReceiver, GossipSender}
-;
+use iroh_docs::NamespaceId;
+use iroh_gossip::{
+    api::{Event, GossipReceiver, GossipSender},
+    net::Gossip,
+    proto::TopicId,
+};
 
 use ed25519_dalek::Signature;
 
 use n0_future::StreamExt;
 use n0_snafu::{Result, ResultExt};
 use serde::{Deserialize, Serialize};
+use tokio::task;
 
-// #[derive(Debug, Clone)]
-// pub struct ReplicaGossip(Arc<Inner>);
+// These are the messages that the replica can send
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Message {
+    Whohas { key: Hash },
+    IHave { key: Hash },
+    Message { text: String },
+    Upkey { key: Hash },
+    Document { key: NamespaceId },
+}
 
-// #[derive(Debug, Clone)]
-// pub struct Inner {
-//     gossip: GossipApi,
-//     blobs: BlobsProtocol,
-//     roots: DashMap<Hash, Vec<NodeAddr>>,
-//     expire: DashMap<u64,Hash>
-// }
+// TODO , this is wrong need to read some other systems
+// and work out the best way.
 
-// impl ReplicaGossip {
-//     fn new(blobs: BlobsProtocol, gossip: GossipApi) -> Self {
-//         Self(Arc::new(Inner {
-//             gossip: gossip,
-//             blobs: blobs,
-//             roots: DashMap::new(),
-//             expire: DashMap::new()
-//         }))
-//     }
+#[derive(Debug)]
+pub struct ReplicaGossip {
+    topic: TopicId,
+    gossip: Gossip,
+    blobs: BlobsProtocol,
+    roots: DashMap<Hash, Vec<NodeAddr>>,
+    expire: DashMap<u64, Hash>,
+    peers : Vec<PublicKey>
+}
 
-//     fn run(self) {
-//         // task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
-//         // task::spawn(replicate::publish_loop(
-//         //     sender,
-//         //     blobs.clone(),
-//         //     endpoint.secret_key().clone(),
-//         // ));
-//     }
-// }
+impl ReplicaGossip {
+    pub async fn new(
+        topic: TopicId,
+        blobs: BlobsProtocol,
+        gossip: Gossip,
+        peers: Vec<PublicKey>,
+    ) -> Result<Self> {
 
-pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) -> Result<()> {
+        Ok(Self {
+            topic: topic,
+            gossip: gossip,
+            blobs: blobs.clone(),
+            roots: DashMap::new(),
+            expire: DashMap::new(),
+            peers: peers
+        })
+    }
+
+    pub async fn run(&mut self) -> Result<()> {
+        let (sender, receiver) = self.gossip.subscribe(self.topic, self.peers.clone()).await?.split();
+        // Start the receiver
+        task::spawn(subscribe_loop(receiver));
+
+        Ok(())
+    }
+}
+
+pub async fn subscribe_loop(mut receiver: GossipReceiver) -> Result<()> {
+    // init a peerid -> name hashmap
+    while let Some(event) = receiver.try_next().await? {
+        if let Event::Received(msg) = event {
+            let (_, message) = SignedMessage::verify_and_decode(&msg.content)?;
+            match message {
+                Message::Whohas { key } => todo!(),
+                Message::IHave { key } => todo!(),
+                Message::Message { text } => todo!(),
+                Message::Upkey { key } => todo!(),
+                Message::Document { key } => todo!(),
+            }
+        }
+    }
+    Ok(()) 
+}
+
+
+pub async fn subscribe_loop_old(mut receiver: GossipReceiver, blobs: BlobsProtocol) -> Result<()> {
     // init a peerid -> name hashmap
     while let Some(event) = receiver.try_next().await? {
         if let Event::Received(msg) = event {
@@ -101,8 +143,9 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver, blobs: BlobsProtocol) 
                     //     println!("{} - {} ", s, h);
                     // }
                 }
-                Message::Whohas { key: _ } => {},
-                Message::IHave { key: _  } => {},
+                Message::Whohas { key: _ } => {}
+                Message::IHave { key: _ } => {}
+                Message::Document { key: _ } => {}
             }
         }
     }
@@ -164,13 +207,5 @@ impl SignedMessage {
         let encoded = postcard::to_stdvec(&signed_message).e()?;
         Ok(encoded.into())
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Message {
-    Whohas { key: Hash },
-    IHave { key: Hash },
-    Message { text: String },
-    Upkey { key: Hash },
 }
 
