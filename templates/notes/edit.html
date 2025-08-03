@@ -5,8 +5,9 @@
     <h1 class="title">{{ title }}</h1>
     <input type="hidden" name="title" value="{{ title }}">
     <div class="field">
+        <label class="label">GFM markdown</label>
         <div class="control">
-            <textarea name="text" id="text" class="textarea">{{ text }}</textarea>
+            <textarea name="text" id="text" class="textarea" rows="40">{{ text }}</textarea>
         </div>
     </div>
     <div class="field">

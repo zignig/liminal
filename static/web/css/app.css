@@ -6,11 +6,6 @@
     margin-top: 0.2em;
 }
 
-:root {
-    /* Default global value */
-    --bulma-pre-font-size: 4.0em;
-}
-
 .brand {
     margin-top: 0.4em;
     margin-left: 0.4em;

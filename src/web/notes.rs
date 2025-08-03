@@ -8,8 +8,6 @@ use rocket::fairing::AdHoc;
 use rocket::form::Form;
 use rocket::response::{Redirect, Responder};
 
-
-
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("Notes Browser", |rocket| async {
         rocket.mount(
@@ -47,10 +45,11 @@ pub async fn show_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder
         Ok(doc) => (doc.id, doc.text),
         Err(_) => ("Bad Note".to_string(), "Note error".to_string()),
     };
-
+    let md =
+        markdown::to_html_with_options(&value, &markdown::Options::gfm()).expect("Bad Markdown");
     NotePageTemplate {
         title: title,
-        text: value,
+        text: md,
         section: "notes".to_string(),
     }
 }
@@ -89,7 +88,11 @@ pub async fn make_note<'r>(
     note_data: Form<NoteCreate<'_>>,
     notes: &State<Notes>,
 ) -> impl Responder<'r, 'static> {
-    let clean_title: String =  note_data.title.chars().filter(|c| c.is_ascii_alphanumeric() || c.is_whitespace()).collect();
+    let clean_title: String = note_data
+        .title
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || c.is_whitespace())
+        .collect();
     let res = notes
         .add(clean_title.clone(), note_data.text.to_string())
         .await;

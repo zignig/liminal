@@ -3,13 +3,15 @@
 // https://github.com/n0-computer/iroh-examples/blob/main/tauri-todos/src-tauri/src/todos.rs
 
 use std::{
-    cmp::Reverse, ops::{Deref, DerefMut}, str::FromStr, sync::Arc
+    cmp::Reverse,
+    str::FromStr,
+    sync::Arc,
 };
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use bytes::Bytes;
 use chrono::Utc;
-use iroh_blobs::{BlobsProtocol, api::blobs::Blobs};
+use iroh_blobs::BlobsProtocol;
 use iroh_docs::{
     AuthorId, DocTicket, Entry,
     api::{Doc, protocol::ShareMode},
@@ -17,7 +19,6 @@ use iroh_docs::{
     protocol::Docs,
     store::Query,
 };
-
 
 use n0_future::{Stream, StreamExt};
 
@@ -171,13 +172,13 @@ impl Notes {
         };
         let mut note = self.get_note(id.clone()).await?;
         note.text = text;
-        self.update_bytes(id,note).await
+        self.update_bytes(id, note).await
     }
 
-    pub async fn set_delete(&self, id:String) -> Result<()>{
+    pub async fn set_delete(&self, id: String) -> Result<()> {
         let mut note = self.get_note(id.clone()).await?;
         note.is_delete = true;
-        self.update_bytes(id,note).await
+        self.update_bytes(id, note).await
     }
 
     // Doc data manipulation
@@ -193,7 +194,7 @@ impl Notes {
         let content = note.as_bytes()?;
         self.insert_bytes(key, content).await
     }
-    
+
     async fn note_from_entry(&self, entry: &Entry) -> Result<Note> {
         let id = String::from_utf8(entry.key().to_owned()).context("invalid key")?;
         match self.0.blobs.get_bytes(entry.content_hash()).await {
