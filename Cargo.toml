@@ -38,7 +38,7 @@ walkdir = "2.5.0"
 fs-tree = { path = "crates/fs-tree" }
 
 # iroh bits 
-iroh = { version = "0.91.0", features = ["discovery-local-network"] }
+iroh = { version = "0.91.1", features = ["discovery-local-network"] }
 iroh-blobs = "0.93.0"
 iroh-gossip = "0.91.0"
 iroh-docs = "0.91.0"

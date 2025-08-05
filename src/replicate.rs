@@ -81,11 +81,11 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver) -> Result<()> {
         if let Event::Received(msg) = event {
             let (_, message) = SignedMessage::verify_and_decode(&msg.content)?;
             match message {
-                Message::Whohas { key } => todo!(),
-                Message::IHave { key } => todo!(),
-                Message::Message { text } => todo!(),
-                Message::Upkey { key } => todo!(),
-                Message::Document { key } => todo!(),
+                Message::Whohas { key } => println!("whohas"),
+                Message::IHave { key } => println!("ihave"),
+                Message::Message { text } => println!("message"),
+                Message::Upkey { key } =>println!("uplkey"),
+                Message::Document { key } =>println!("document"),
             }
         }
     }

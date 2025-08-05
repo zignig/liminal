@@ -43,7 +43,7 @@ pub async fn show_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder
     let doc_res = notes.get_note(doc_id.to_string()).await;
     let (title, value) = match doc_res {
         Ok(doc) => (doc.id, doc.text),
-        Err(_) => todo!()
+        Err(_) => todo!(),
     };
     let md =
         markdown::to_html_with_options(&value, &markdown::Options::gfm()).expect("Bad Markdown");
@@ -73,6 +73,7 @@ pub async fn edit_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder
 pub async fn create_note<'r>() -> impl Responder<'r, 'static> {
     NoteCreateTemplate {
         section: "notes".to_string(),
+        title_error: false,
     }
 }
 
@@ -88,19 +89,25 @@ pub async fn make_note<'r>(
     note_data: Form<NoteCreate<'_>>,
     notes: &State<Notes>,
 ) -> impl Responder<'r, 'static> {
-    let clean_title: String = note_data
+    let mut clean_title: String = note_data
         .title
         .chars()
         .filter(|c| c.is_ascii_alphanumeric() || c.is_whitespace())
         .collect();
+
+    // No empty titles.
+    if note_data.title == "".to_string() {
+        // Empty title is bad
+        clean_title = "BAD_TITLE".to_string();
+    }
     let res = notes
-        .add(clean_title.clone(), note_data.text.to_string())
+        .create(clean_title.clone(), note_data.text.to_string())
         .await;
     match res {
-        Ok(_) => Redirect::to(uri!(show_note(clean_title))),
+        Ok(_) => return Redirect::to(uri!(show_note(clean_title))),
         Err(e) => {
             println!("{:#?}", e);
-            Redirect::to(uri!(create_note()))
+            return Redirect::to(uri!(create_note()));
         }
     }
 }

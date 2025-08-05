@@ -1,5 +1,6 @@
 // This is a wrapper set around iroh-docs
-//  Based upon the tauri to example
+// Based upon the tauri to example
+// With alterations...
 // https://github.com/n0-computer/iroh-examples/blob/main/tauri-todos/src-tauri/src/todos.rs
 
 use std::{cmp::Reverse, str::FromStr, sync::Arc};
@@ -119,7 +120,7 @@ impl Notes {
         self.0.doc.subscribe().await
     }
 
-    pub async fn add(&self, id: String, text: String) -> Result<()> {
+    pub async fn create(&self, id: String, text: String) -> Result<()> {
         if text.len() > MAX_TEXT_LEN {
             bail!("text is too long, max size is {MAX_TEXT_LEN}");
         };
@@ -145,11 +146,12 @@ impl Notes {
             if !note.is_delete {
                 notes.push(note)
             }
+            // notes.push(note);
         }
         notes.sort_by_key(|n| Reverse(n.created));
         Ok(notes)
     }
-
+    
     pub async fn get_note(&self, id: String) -> Result<Note> {
         let entry_option = self
             .0
@@ -171,9 +173,29 @@ impl Notes {
         self.update_bytes(id, note).await
     }
 
+    pub async fn fix_title(&self, id: String) -> Result <()>{{
+        let mut note = self.get_note(id.clone()).await?;
+        note.id = "__".to_string();
+        self.update_bytes(id, note).await
+    }}
+
+    pub async fn delete_hidden(&self) -> Result <()> { 
+     let entries = self.0.doc.get_many(Query::single_latest_per_key()).await?;
+        // delete hidden docs ; ( admin move )
+        tokio::pin!(entries);
+        while let Some(entry) = entries.next().await {
+            let entry = entry?;
+            let note = self.note_from_entry(&entry).await?;
+            if !note.is_delete || note.id == "__".to_string(){
+                let _ = self.0.doc.del(self.0.author, note.id).await;           
+            }
+        }
+        Ok(())
+    }
+
     pub async fn set_delete(&self, id: String) -> Result<()> {
         let mut note = self.get_note(id.clone()).await?;
-        note.is_delete = true;
+        note.is_delete = !note.is_delete;
         self.update_bytes(id, note).await
     }
 

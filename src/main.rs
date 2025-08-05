@@ -5,9 +5,8 @@ use std::{
     str::FromStr,
 };
 
-//use futures_lite::StreamExt;
 use clap::Parser;
-use iroh::{Endpoint, NodeAddr, NodeId, SecretKey};
+use iroh::{Endpoint, NodeId, SecretKey};
 use iroh_blobs::{ALPN as BLOBS_ALPN, Hash, store::fs::FsStore};
 use iroh_docs::{ALPN as DOCS_ALPN, protocol::Docs};
 use iroh_gossip::{
@@ -15,7 +14,6 @@ use iroh_gossip::{
     proto::TopicId,
 };
 
-use n0_future::task;
 
 use n0_snafu::{Result, ResultExt, format_err};
 use n0_watcher::Watcher;
@@ -38,7 +36,6 @@ extern crate rocket;
 
 #[rocket::main]
 async fn main() -> Result<()> {
-    // TODO: make this shorter
     tracing_subscriber::fmt::init();
     let args = cli::Args::parse();
 
@@ -60,8 +57,8 @@ async fn main() -> Result<()> {
         Err(_) => return Err(format_err!("bad database!")),
     };
 
-    // Random cli entry will generate a new node id
-    // Or use a fixed one from confi
+    // --random cli entry will generate a new node id
+    // Or use a fixed one from config
     let secret_key = match &args.random {
         true => SecretKey::generate(rand::rngs::OsRng),
         false => match conf.get_secret_key() {
@@ -98,19 +95,13 @@ async fn main() -> Result<()> {
     // create the gossip protocol
     let gossip = Gossip::builder().spawn(endpoint.clone());
 
-    // Blob data store
-    let path = PathBuf::from("data/blobs");
-    println!("Data store : {}", path.display());
-
-    // Local blob file store
-    let store = FsStore::load(path).await.unwrap();
-
     // BLOBS!
+    let path = PathBuf::from("data/blobs");
+    let store = FsStore::load(path).await.unwrap();
     let blobs = iroh_blobs::BlobsProtocol::new(&store, endpoint.clone(), None);
 
     // Path browser
     let fileset = store::FileSet::new(blobs.clone());
-
     // Get the file roots
     fileset.fill().await;
 
@@ -162,11 +153,15 @@ async fn main() -> Result<()> {
     // base_notes.add("test".to_string(),"test_data".to_string()).await.unwrap();
     // base_notes.add("chicken wings".to_string(),"MMM tasty".to_string()).await.unwrap();
 
+    // Some fixes
+
+    // base_notes.fix_title("".to_string()).await.unwrap();
+    let _ = base_notes.delete_hidden();
+
     // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
 
     // let (sender, receiver) = gossip.subscribe(topic, peer_ids.clone()).await?.split();
-    println!("> connected!");
 
     // Replica gossip
     let mut replica =
@@ -197,11 +192,10 @@ async fn main() -> Result<()> {
             .merge(("address", "0.0.0.0"))
             .merge(("port", 8080))
             .merge(("secret_key", rocket_secret_key))
-            .merge(("log_level", "normal"));
+            .merge(("log_level", "critical"));
 
         let _result = rocket::custom(figment)
             .manage(base_notes.clone())
-            .manage(docs.clone())
             .manage(fileset.clone())
             .manage(blobs.clone())
             .attach(web::stage())

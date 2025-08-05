@@ -3,6 +3,8 @@
 use askama::Template;
 use askama_web::WebTemplate;
 
+use crate::notes::Note;
+
 #[derive(Template, WebTemplate)]
 #[template(path = "index.html")]
 pub struct HomePageTemplate {
@@ -39,6 +41,7 @@ pub struct NotePageTemplate {
 #[template(path = "notes/create.html")]
 pub struct NoteCreateTemplate {
     pub section: String,
+    pub title_error: bool
 }
 
 #[derive(Template, WebTemplate)]

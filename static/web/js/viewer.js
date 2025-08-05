@@ -145,18 +145,18 @@ function animate() {
 }
 
 function render() {
-    raycaster.setFromCamera(mouse, camera);
-    var intersects = raycaster.intersectObjects(meshlist);
-    if (intersects.length > 0) {
-        if (INTERSECTED != intersects[0].object) {
-            if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHEX);
-            INTERSECTED = intersects[0].object;
-            INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
-            INTERSECTED.material.emissive.setHex(0x551111);
-        }
-    } else {
-        if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
-        INTERSECTED = null;
-    }
+    // raycaster.setFromCamera(mouse, camera);
+    // var intersects = raycaster.intersectObjects(meshlist);
+    // if (intersects.length > 0) {
+    //     if (INTERSECTED != intersects[0].object) {
+    //         if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHEX);
+    //         INTERSECTED = intersects[0].object;
+    //         INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+    //         INTERSECTED.material.emissive.setHex(0x551111);
+    //     }
+    // } else {
+    //     if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+    //     INTERSECTED = null;
+    // }
     renderer.render(scene, camera);
 }
