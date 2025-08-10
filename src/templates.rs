@@ -77,3 +77,11 @@ pub struct GltfPageTemplate {
 pub struct LoginPageTemplate {
     pub section: String
 }
+
+// icon listing
+#[derive(Template, WebTemplate)]
+#[template(path = "icons.html")]
+pub struct IconsPageTemplate {
+    pub section: String,
+    pub icons: Vec<String>
+}

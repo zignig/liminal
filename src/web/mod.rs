@@ -5,7 +5,9 @@ use std::str::FromStr;
 
 use crate::notes::Notes;
 use crate::store::FileSet;
-use crate::templates::{GltfPageTemplate, HomePageTemplate, NetworkPageTemplate, NodePageTemplate};
+use crate::templates::{
+    GltfPageTemplate, HomePageTemplate, IconsPageTemplate, NetworkPageTemplate, NodePageTemplate,
+};
 use chrono::Local;
 use iroh_blobs::ticket::BlobTicket;
 use iroh_blobs::{BlobsProtocol, HashAndFormat};
@@ -34,7 +36,8 @@ pub fn stage() -> AdHoc {
                 viewer,
                 network,
                 nodes,
-                auth::login
+                auth::login,
+                show_icons
             ],
         )
     })
@@ -123,5 +126,19 @@ pub fn viewer<'r>() -> impl Responder<'r, 'static> {
     GltfPageTemplate {
         path: "/static/gltf/train-diesel-a.glb".to_owned(),
         section: "viewer".to_string(),
+    }
+}
+
+// Show all the fa5 icons for selection
+#[get("/icons")]
+pub fn show_icons<'r>() -> impl Responder<'r, 'static> {
+    let icons_file = fixed::Asset::get("reference/fa5.json");
+    let icon_list: Vec<String> = match icons_file {
+        Some(icons) => serde_json::from_slice(&icons.data).unwrap(),
+        None => vec![],
+    };
+    IconsPageTemplate {
+        section: "admin".to_string(),
+        icons: icon_list,
     }
 }

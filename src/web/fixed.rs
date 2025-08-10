@@ -65,3 +65,7 @@ pub fn favicon() -> Option<CacheControl> {
 
     Some(CacheControl::new(content_type, asset))
 }
+
+// fa5 icons 
+// stolen from 
+// https://gist.githubusercontent.com/sakalauskas/b0c5049d5dc349713a82f1cb2a30b2fa/raw/ce34182e1ac873b0185b03731ec8bd47072c8e0e/FontAwesome-v5.0.9-Free.json

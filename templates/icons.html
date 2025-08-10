@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<ul>
+    {% for icon in icons %}
+    <li>
+        <span class="icon is-large">
+            <i class="{{ icon }}"></i> 
+        </span>
+        {{ icon }}
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

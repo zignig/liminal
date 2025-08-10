@@ -151,7 +151,7 @@ impl Notes {
         notes.sort_by_key(|n| Reverse(n.created));
         Ok(notes)
     }
-    
+
     pub async fn get_note(&self, id: String) -> Result<Note> {
         let entry_option = self
             .0
@@ -173,21 +173,23 @@ impl Notes {
         self.update_bytes(id, note).await
     }
 
-    pub async fn fix_title(&self, id: String) -> Result <()>{{
-        let mut note = self.get_note(id.clone()).await?;
-        note.id = "__".to_string();
-        self.update_bytes(id, note).await
-    }}
+    pub async fn fix_title(&self, id: String) -> Result<()> {
+        {
+            let mut note = self.get_note(id.clone()).await?;
+            note.id = "__".to_string();
+            self.update_bytes(id, note).await
+        }
+    }
 
-    pub async fn delete_hidden(&self) -> Result <()> { 
-     let entries = self.0.doc.get_many(Query::single_latest_per_key()).await?;
+    pub async fn delete_hidden(&self) -> Result<()> {
+        let entries = self.0.doc.get_many(Query::single_latest_per_key()).await?;
         // delete hidden docs ; ( admin move )
         tokio::pin!(entries);
         while let Some(entry) = entries.next().await {
             let entry = entry?;
             let note = self.note_from_entry(&entry).await?;
-            if !note.is_delete || note.id == "__".to_string(){
-                let _ = self.0.doc.del(self.0.author, note.id).await;           
+            if !note.is_delete || note.id == "__".to_string() {
+                let _ = self.0.doc.del(self.0.author, note.id).await;
             }
         }
         Ok(())
