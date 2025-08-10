@@ -3,6 +3,7 @@
 
 use std::str::FromStr;
 
+use crate::notes::Notes;
 use crate::store::FileSet;
 use crate::templates::{GltfPageTemplate, HomePageTemplate, NetworkPageTemplate, NodePageTemplate};
 use chrono::Local;
@@ -40,12 +41,13 @@ pub fn stage() -> AdHoc {
 }
 
 #[get("/")]
-pub fn index<'r>() -> impl Responder<'r, 'static> {
+pub async fn index<'r>() -> impl Responder<'r, 'static> {
     HomePageTemplate {
         section: "".to_string(),
     }
 }
 
+// TODO move into utils and make more checks.
 pub async fn get_collection(encoded: &str, blobs: &BlobsProtocol) -> anyhow::Result<()> {
     match BlobTicket::from_str(encoded) {
         Ok(ticket) => {

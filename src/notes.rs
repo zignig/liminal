@@ -220,4 +220,6 @@ impl Notes {
             Err(_) => Ok(Note::missing_note(id)),
         }
     }
+
+    // End direct doc manipulation
 }
