@@ -9,12 +9,14 @@
         <a class="button is-danger is-small" href="/notes/delete/{{ note.id }}">Hide</a>
     </div>
 </nav>
+
 <hr>
+{%if note.is_delete %}<button class="delete is-large is-danger"></button>{% endif %}
 <div class="content">
     {{ text|safe }}
 </div>
 {% endblock %}
-
+{{ note.created }} {{ note.updated }}
 {% block noteaction %}
 <li>
     <a href="/notes/edit/{{ note.id }}">Edit</a>

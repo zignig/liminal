@@ -7,8 +7,8 @@ use std::{cmp::Reverse, str::FromStr, sync::Arc};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use bytes::Bytes;
-use chrono::Utc;
-use iroh_blobs::BlobsProtocol;
+use chrono::{Local, Utc};
+use iroh_blobs::{BlobsProtocol, Hash, format::collection::Collection};
 use iroh_docs::{
     AuthorId, DocTicket, Entry,
     api::{Doc, protocol::ShareMode},
@@ -27,6 +27,7 @@ pub struct Note {
     pub id: String,
     pub text: String,
     pub created: i64,
+    pub updated: i64,
     pub is_delete: bool,
 }
 
@@ -49,6 +50,7 @@ impl Note {
         Self {
             text: String::from(""),
             created: 0,
+            updated: 0,
             is_delete: false,
             id,
         }
@@ -58,8 +60,9 @@ impl Note {
         Self {
             text: String::from("bad_note"),
             created: 0,
+            updated: 0,
             is_delete: false,
-            id: String::from("bad_note")
+            id: String::from("bad_note"),
         }
     }
 }
@@ -79,8 +82,13 @@ pub struct Inner {
 }
 
 impl Notes {
-    pub async fn new(ticket: Option<String>, blobs: BlobsProtocol, docs: Docs) -> Result<Self> {
-        let author = docs.author_create().await?;
+    pub async fn new(
+        ticket: Option<String>,
+        author: AuthorId,
+        blobs: BlobsProtocol,
+        docs: Docs,
+    ) -> Result<Self> {
+        let author = author;
         let doc = match ticket {
             Some(ticket) => {
                 let ticket = DocTicket::from_str(&ticket)?;
@@ -99,15 +107,19 @@ impl Notes {
         })))
     }
 
-    pub async fn from_id(id: [u8; 32], blobs: BlobsProtocol, docs: Docs) -> Result<Self> {
+    pub async fn from_id(
+        id: [u8; 32],
+        author: AuthorId,
+        blobs: BlobsProtocol,
+        docs: Docs,
+    ) -> Result<Self> {
         let doc = docs.open(id.into()).await?;
         let doc = match doc {
             Some(doc) => doc,
             None => return Err(anyhow!("Doc does not exist")),
         };
         let ticket = doc.share(ShareMode::Write, Default::default()).await?;
-        // TODO , save the author key in config ( just create a new one for now)
-        let author = docs.author_create().await?;
+        let author = author;
         Ok(Self(Arc::new(Inner {
             blobs,
             docs,
@@ -138,6 +150,7 @@ impl Notes {
             id: id.clone(),
             text,
             created,
+            updated: created,
             is_delete: false,
         };
 
@@ -157,7 +170,7 @@ impl Notes {
             }
             // notes.push(note);
         }
-        notes.sort_by_key(|n| Reverse(n.created));
+        notes.sort_by_key(|n| Reverse(n.updated));
         Ok(notes)
     }
 
@@ -166,7 +179,7 @@ impl Notes {
         let note_list_res = self.get_notes().await;
         let items = match note_list_res {
             Ok(notes) => notes.iter().map(|n| n.id.clone()).collect(),
-            Err(_) => vec![],
+            Err(e) => vec![format!("{e}")],
         };
         items
     }
@@ -189,15 +202,8 @@ impl Notes {
         };
         let mut note = self.get_note(id.clone()).await?;
         note.text = text;
+        note.updated = Utc::now().timestamp();
         self.update_bytes(id, note).await
-    }
-
-    pub async fn fix_title(&self, id: String) -> Result<()> {
-        {
-            let mut note = self.get_note(id.clone()).await?;
-            note.id = "__".to_string();
-            self.update_bytes(id, note).await
-        }
     }
 
     pub async fn delete_hidden(&self) -> Result<()> {
@@ -207,8 +213,14 @@ impl Notes {
         while let Some(entry) = entries.next().await {
             let entry = entry?;
             let note = self.note_from_entry(&entry).await?;
-            if !note.is_delete || note.id == "__".to_string() {
-                let _ = self.0.doc.del(self.0.author, note.id).await;
+            if note.is_delete {
+                println!("{:#?}", note);
+                let val = self
+                    .0
+                    .doc
+                    .del(self.0.author, entry.key().to_owned())
+                    .await?;
+                println!("{:?} nodes deleted", val);
             }
         }
         Ok(())
@@ -242,5 +254,43 @@ impl Notes {
         }
     }
 
+    pub async fn bounce_down(&self) -> Result<()> {
+        let entries = self.0.doc.get_many(Query::single_latest_per_key()).await?;
+        let mut notes = Vec::new();
+        // TODO remove once entries are unpin !
+        tokio::pin!(entries);
+        while let Some(entry) = entries.next().await {
+            let entry = entry?;
+            let note = self.note_from_entry(&entry).await?;
+            // if !note.is_delete {
+            //     notes.push(note)
+            // }
+            let h = self.0.blobs.add_bytes(note.text).await?.hash;
+            let p = note.id.clone();
+            notes.push((format!("{p}"), h));
+        }
+        print!("{:#?}", notes);
+        let col = notes.into_iter().collect::<Collection>();
+        let col_hash = col.store(&self.0.blobs).await?;
+        let dt = Local::now().to_rfc3339().to_owned();
+        self.0
+            .blobs
+            .tags()
+            .set(format!("col-{}", dt), &col_hash)
+            .await?;
+        println!("{:?}", col_hash);
+        Ok(())
+    }
+
+    pub async fn bounce_up(&self, hash: Hash) -> Result<()> {
+        let coll = Collection::load(hash, self.0.blobs.store()).await?;
+        println!("{:#?}", coll);
+        for (name,hash) in coll.iter() { 
+            let data_bytes = self.0.blobs.get_bytes(hash.as_bytes()).await?;
+            let text = String::from_utf8(data_bytes.to_vec())?;
+            self.create(name.clone(),text).await?
+        }
+        Ok(())
+    }
     // End direct doc manipulation
 }

@@ -5,6 +5,7 @@
 
 use anyhow::{Result, anyhow};
 use iroh::{NodeId, PublicKey, SecretKey};
+use iroh_docs::api::protocol::AuthorSetDefaultResponse;
 use redb::{Database, Table, TableDefinition, TableHandle, WriteTransaction};
 use std::{fs, path::PathBuf};
 
@@ -12,6 +13,7 @@ const TIME_TABLE: TableDefinition<&str, u64> = TableDefinition::new("timings");
 const NODE_TABLE: TableDefinition<&[u8; 32], &str> = TableDefinition::new("nodes");
 const SECRET_TABLE: TableDefinition<u32, &[u8; 32]> = TableDefinition::new("secrets");
 const DOCS_TABLE: TableDefinition<&str, &[u8; 32]> = TableDefinition::new("doc_pointers");
+const AUTHORS_TABLE: TableDefinition<&str, &[u8; 32]> = TableDefinition::new("authors");
 
 pub struct Info {
     db: Database,
@@ -31,6 +33,7 @@ pub struct Tables<'tx> {
     pub nodes: Table<'tx, &'static [u8; 32], &'static str>,
     pub secrets: Table<'tx, u32, &'static [u8; 32]>,
     pub docs: Table<'tx, &'static str, &'static [u8; 32]>,
+    pub authors: Table<'tx, &'static str, &'static [u8; 32]>,
 }
 
 impl<'tx> Tables<'tx> {
@@ -39,12 +42,14 @@ impl<'tx> Tables<'tx> {
         let nodes = tx.open_table(NODE_TABLE)?;
         let secrets = tx.open_table(SECRET_TABLE)?;
         let docs = tx.open_table(DOCS_TABLE)?;
+        let authors = tx.open_table(AUTHORS_TABLE)?;
 
         Ok(Self {
             timing,
             nodes,
             secrets,
             docs,
+            authors,
         })
     }
 }
@@ -147,4 +152,29 @@ impl Info {
     pub fn get_notes_id(&self) -> Result<[u8; 32]> {
         self.get_docs_key("notes")
     }
+
+    pub fn get_author_key(&self, name: &str) -> Result<[u8; 32]> {
+        let read_tx = self.db.begin_read()?;
+        let authors = read_tx.open_table(AUTHORS_TABLE)?;
+        if let Some(data) = authors.get(name)? {
+            return Ok(data.value().clone());
+        } else {
+            return Err(anyhow!("key does not exist"));
+        }
+    }
+
+    pub fn set_author_key(&self, name: &str, value: [u8; 32]) -> Result<()> {
+        let write_tx = self.db.begin_write()?;
+        {
+            let mut authors = write_tx.open_table(AUTHORS_TABLE)?;
+            authors.insert(name, &value)?;
+        }
+        write_tx.commit()?;
+        Ok(())
+    }
+
+    pub fn get_notes_author(&self) -> Result<[u8;32]>{
+        self.get_author_key("notes")
+    }
+    
 }

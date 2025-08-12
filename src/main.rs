@@ -8,12 +8,11 @@ use std::{
 use clap::Parser;
 use iroh::{Endpoint, NodeId, SecretKey};
 use iroh_blobs::{ALPN as BLOBS_ALPN, Hash, store::fs::FsStore};
-use iroh_docs::{ALPN as DOCS_ALPN, protocol::Docs};
+use iroh_docs::{ALPN as DOCS_ALPN, AuthorId, protocol::Docs};
 use iroh_gossip::{
     net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
-
 
 use n0_snafu::{Result, ResultExt, format_err};
 use n0_watcher::Watcher;
@@ -137,12 +136,21 @@ async fn main() -> Result<()> {
     // Testing notes interface
     // Stores the doc id in the config and makes a new one
     // if it is not there.
+    // create a base author (not default )
+    let base_author = match conf.get_notes_author() {
+        Ok(id) => AuthorId::from(id),
+        Err(_) => {
+            let new_author = docs.author_create().await.unwrap();
+            let _ = conf.set_author_key("notes", new_author.to_bytes());
+            new_author
+        }
+    };
     let base_notes = match conf.get_notes_id() {
-        Ok(id) => notes::Notes::from_id(id, blobs.clone(), docs.clone())
+        Ok(id) => notes::Notes::from_id(id, base_author, blobs.clone(), docs.clone())
             .await
             .unwrap(),
         Err(_) => {
-            let n = notes::Notes::new(None, blobs.clone(), docs.clone())
+            let n = notes::Notes::new(None, base_author, blobs.clone(), docs.clone())
                 .await
                 .unwrap();
             let _ = conf.set_docs_key("notes", n.id());
@@ -157,7 +165,12 @@ async fn main() -> Result<()> {
     // Some fixes
 
     // base_notes.fix_title("".to_string()).await.unwrap();
-    let _ = base_notes.delete_hidden();
+    // let val = base_notes.delete_hidden().await;
+    // println!("{:#?}", val);
+    // //let val = base_notes.bounce_down().await;
+    // let h = Hash::from_str("c7c8b609d602b156d9a485ee7d3c543c4f31da255e12177cc88a5d4e10da7d3c")?;
+    // let val = base_notes.bounce_up(h).await;
+    // println!("{:#?}", val);
 
     // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
