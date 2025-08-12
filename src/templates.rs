@@ -3,6 +3,8 @@
 use askama::Template;
 use askama_web::WebTemplate;
 
+use crate::notes::Note;
+
 #[derive(Template, WebTemplate)]
 #[template(path = "index.html")]
 pub struct HomePageTemplate {
@@ -11,7 +13,7 @@ pub struct HomePageTemplate {
 
 #[derive(Template, WebTemplate)]
 #[template(path = "files.html")]
-pub struct  FilePageTemplate {
+pub struct FilePageTemplate {
     pub items: Vec<String>,
     pub path: String,
     pub segments: Vec<String>,
@@ -19,7 +21,7 @@ pub struct  FilePageTemplate {
     pub section: String,
 }
 
-// Notes interface 
+// Notes interface
 #[derive(Template, WebTemplate)]
 #[template(path = "notes/notes.html")]
 pub struct NotesPageTemplate {
@@ -30,26 +32,28 @@ pub struct NotesPageTemplate {
 #[derive(Template, WebTemplate)]
 #[template(path = "notes/note.html")]
 pub struct NotePageTemplate {
-    pub title: String,
-    pub text: String,
+    pub note: Note,
+    pub text: String, 
     pub section: String,
+    pub notes: Vec<String>,
 }
 
 #[derive(Template, WebTemplate)]
 #[template(path = "notes/create.html")]
 pub struct NoteCreateTemplate {
     pub section: String,
-    pub title_error: bool
+    pub title_error: bool,
+    pub notes: Vec<String>,
 }
 
 #[derive(Template, WebTemplate)]
 #[template(path = "notes/edit.html")]
 pub struct NoteEditTemplate {
-    pub title: String,
-    pub text: String,
+    pub note: Note,
     pub section: String,
+    pub notes: Vec<String>,
 }
-// End notes interface 
+// End notes interface
 
 #[derive(Template, WebTemplate)]
 #[template(path = "network.html")]
@@ -61,8 +65,8 @@ pub struct NetworkPageTemplate {
 #[derive(Template, WebTemplate)]
 #[template(path = "node.html")]
 pub struct NodePageTemplate {
-    pub node_id: String,
     pub section: String,
+    pub node_id: String
 }
 
 #[derive(Template, WebTemplate)]
@@ -75,7 +79,7 @@ pub struct GltfPageTemplate {
 #[derive(Template, WebTemplate)]
 #[template(path = "login.html")]
 pub struct LoginPageTemplate {
-    pub section: String
+    pub section: String,
 }
 
 // icon listing
@@ -83,5 +87,5 @@ pub struct LoginPageTemplate {
 #[template(path = "icons.html")]
 pub struct IconsPageTemplate {
     pub section: String,
-    pub icons: Vec<String>
+    pub icons: Vec<String>,
 }

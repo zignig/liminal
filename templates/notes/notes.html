@@ -1,24 +1,12 @@
-{% extends "base.html" %}
+{% extends "notes/notes_base.html" %}
+
 
 {% block content %}
-<table class="table is-striped is-hoverable is-fullwidth">
-    <tbody>
-        {% for note in notes %}
-        <tr>
-            <td><a href="/notes/show/{{note}}"> {{ note }}</a></td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<h1 class="title">Put stuff here.</h1>
 {% endblock %}
 
-{% block actions %}
+{% block noteaction %}
 <li>
     <a href="/notes/create">Create New</a>
 </li>
-<p class="menu-label">Notes</p>
-{% for note in notes %}
-<li><a href="/notes/show/{{note}}"> {{ note }}</a></li>
-{% endfor %}
-
 {% endblock %}

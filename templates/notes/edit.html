@@ -1,13 +1,14 @@
-{% extends "base.html" %}
+{% extends "notes/notes_base.html" %}
+
 
 {% block content %}
 <form id="create-note" action="/notes/update" method="post">
-    <h1 class="title">{{ title }}</h1>
-    <input type="hidden" name="title" value="{{ title }}">
+    <h1 class="title">{{ note.id }}</h1>
+    <input type="hidden" name="title" value="{{ note.id }}">
     <div class="field">
         <label class="label">Markdown</label>
         <div class="control">
-            <textarea name="text" id="text" class="textarea" rows="40">{{ text }}</textarea>
+            <textarea name="text" id="text" class="textarea" rows="40">{{ note.text }}</textarea>
         </div>
     </div>
     <div class="field">
@@ -18,8 +19,8 @@
 </form>
 {% endblock %}
 
-{% block actions %}
+{% block noteaction %}
 <li>
-    <a href="/notes/show/{{ title }}">Cancel</a>
+    <a href="/notes/show/{{ note.id }}">Cancel</a>
 </li>
 {% endblock %}

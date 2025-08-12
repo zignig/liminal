@@ -150,8 +150,7 @@ async fn main() -> Result<()> {
         }
     };
 
-    base_notes.create("_meta".to_string(),"meta".to_string()).await.unwrap();
-
+    // base_notes.create("_meta".to_string(),"meta".to_string()).await.unwrap();
     // base_notes.add("test".to_string(),"test_data".to_string()).await.unwrap();
     // base_notes.add("chicken wings".to_string(),"MMM tasty".to_string()).await.unwrap();
 

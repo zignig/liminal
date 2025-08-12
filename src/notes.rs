@@ -53,6 +53,15 @@ impl Note {
             id,
         }
     }
+
+    pub fn bad_note() -> Self {
+        Self {
+            text: String::from("bad_note"),
+            created: 0,
+            is_delete: false,
+            id: String::from("bad_note")
+        }
+    }
 }
 
 // Notes outer
@@ -150,6 +159,16 @@ impl Notes {
         }
         notes.sort_by_key(|n| Reverse(n.created));
         Ok(notes)
+    }
+
+    // Just get a vec
+    pub async fn get_note_vec(&self) -> Vec<String> {
+        let note_list_res = self.get_notes().await;
+        let items = match note_list_res {
+            Ok(notes) => notes.iter().map(|n| n.id.clone()).collect(),
+            Err(_) => vec![],
+        };
+        items
     }
 
     pub async fn get_note(&self, id: String) -> Result<Note> {

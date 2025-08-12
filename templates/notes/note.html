@@ -1,12 +1,12 @@
-{% extends "base.html" %}
+{% extends "notes/notes_base.html" %}
 
 {% block content %}
 <nav class="level">
     <div class="level-left">
-        <h1 class="title">{{ title }}</h1>
+        <h1 class="title">{{ note.id }}</h1>
     </div>
     <div class="level-right">
-        <a class="button is-danger is-small" href="/notes/delete/{{ title }}">Hide</a>
+        <a class="button is-danger is-small" href="/notes/delete/{{ note.id }}">Hide</a>
     </div>
 </nav>
 <hr>
@@ -15,8 +15,8 @@
 </div>
 {% endblock %}
 
-{% block actions %}
+{% block noteaction %}
 <li>
-    <a href="/notes/edit/{{ title }}">Edit</a>
+    <a href="/notes/edit/{{ note.id }}">Edit</a>
 </li>
 {% endblock %}

@@ -1,6 +1,6 @@
 // Notes web interface
 
-use crate::notes::Notes;
+use crate::notes::{self, Notes};
 use crate::templates::{NoteCreateTemplate, NoteEditTemplate, NotePageTemplate, NotesPageTemplate};
 
 use rocket::State;
@@ -27,13 +27,8 @@ pub fn stage() -> AdHoc {
 
 #[get("/notes")]
 pub async fn show_notes<'r>(notes: &State<Notes>) -> impl Responder<'r, 'static> {
-    let note_list_res = notes.get_notes().await;
-    let items = match note_list_res {
-        Ok(notes) => notes.iter().map(|n| n.id.clone()).collect(),
-        Err(_) => todo!(),
-    };
     NotesPageTemplate {
-        notes: items,
+        notes: notes.get_note_vec().await,
         section: "notes".to_string(),
     }
 }
@@ -41,39 +36,41 @@ pub async fn show_notes<'r>(notes: &State<Notes>) -> impl Responder<'r, 'static>
 #[get("/notes/show/<doc_id>")]
 pub async fn show_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder<'r, 'static> {
     let doc_res = notes.get_note(doc_id.to_string()).await;
-    let (title, value) = match doc_res {
-        Ok(doc) => (doc.id, doc.text),
+    let (value, note) = match doc_res {
+        Ok(doc) => (doc.text.clone(), doc),
         Err(_) => todo!(),
     };
     let md =
         markdown::to_html_with_options(&value, &markdown::Options::gfm()).expect("Bad Markdown");
     NotePageTemplate {
-        title: title,
+        note: note,
         text: md,
         section: "notes".to_string(),
+        notes: notes.get_note_vec().await,
     }
 }
 
 #[get("/notes/edit/<doc_id>")]
 pub async fn edit_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder<'r, 'static> {
     let doc_res = notes.get_note(doc_id.to_string()).await;
-    let (title, value) = match doc_res {
-        Ok(doc) => (doc.id, doc.text),
-        Err(_) => ("Bad Note".to_string(), "Note error".to_string()),
+    let note = match doc_res {
+        Ok(doc) => doc,
+        Err(_) => notes::Note::bad_note(),
     };
 
     NoteEditTemplate {
-        title: title,
-        text: value,
+        note: note,
         section: "notes".to_string(),
+        notes: notes.get_note_vec().await,
     }
 }
 
 #[get("/notes/create")]
-pub async fn create_note<'r>() -> impl Responder<'r, 'static> {
+pub async fn create_note<'r>(notes: &State<Notes>) -> impl Responder<'r, 'static> {
     NoteCreateTemplate {
         section: "notes".to_string(),
         title_error: false,
+        notes: notes.get_note_vec().await,
     }
 }
 
