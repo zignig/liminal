@@ -14,3 +14,7 @@
 .content { 
     padding: 0.4em;
 }
+
+.menu-list a { 
+    font-size: 1.1em;
+}

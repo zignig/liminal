@@ -43,6 +43,7 @@ pub struct NotePageTemplate {
 pub struct NoteCreateTemplate {
     pub section: String,
     pub title_error: bool,
+    pub text: String,
     pub notes: Vec<String>,
 }
 

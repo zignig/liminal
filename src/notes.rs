@@ -170,6 +170,7 @@ impl Notes {
             }
             // notes.push(note);
         }
+        // println!("{:#?}",notes);
         notes.sort_by_key(|n| Reverse(n.updated));
         Ok(notes)
     }
@@ -200,7 +201,11 @@ impl Notes {
         if text.len() > MAX_TEXT_LEN {
             bail!("text is too long, max size is {MAX_TEXT_LEN}");
         };
-        let mut note = self.get_note(id.clone()).await?;
+        let mut note_res = self.get_note(id.clone()).await;
+        let mut note = match note_res {
+            Ok(note) => note,
+            Err(_) => Note::missing_note(id.clone()),
+        };
         note.text = text;
         note.updated = Utc::now().timestamp();
         self.update_bytes(id, note).await

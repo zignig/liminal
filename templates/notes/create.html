@@ -6,7 +6,7 @@
     <div class="field">
         <label class="label">Title</label>
         <div class="control has-icons-left">
-            <input class="input" type="text" name="title" placeholder="Note Title">
+            <input class="input {% if title_error %}is-danger{% endif %}" type="text" name="title" placeholder="Note Title">
             <span class="icon is-small is-left">
                 <i class="fas fa-file"></i>
             </span>
@@ -15,7 +15,7 @@
     <div class="field">
         <label class="label">GFM markdown</label>
         <div class="control">
-            <textarea name="text" id="text" class="textarea" rows="30"></textarea>
+            <textarea name="text" id="text" class="textarea" rows="30">{{ text }}</textarea>
         </div>
     </div>
     <div class="field">

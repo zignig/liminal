@@ -2,11 +2,17 @@
 
 
 {% block actions %}
+
 {% block noteaction %}
 {% endblock %}
 <p class="menu-label">Notes</p>
-{% for note in notes %}
-<li><a href="/notes/show/{{note}}"> {{ note }}</a></li>
-{% endfor %}
-
+<ul class="menu-list">
+    <li>
+        <ul>
+            {% for note in notes %}
+            <li><a href="/notes/show/{{note}}"> {{ note }}</a></li>
+            {% endfor %}
+        </ul>
+    </li>
+</ul>
 {% endblock %}

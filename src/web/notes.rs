@@ -27,6 +27,7 @@ pub fn stage() -> AdHoc {
 
 #[get("/notes")]
 pub async fn show_notes<'r>(notes: &State<Notes>) -> impl Responder<'r, 'static> {
+    println!("{:#?}",notes.get_note_vec().await);
     NotesPageTemplate {
         notes: notes.get_note_vec().await,
         section: "notes".to_string(),
@@ -71,6 +72,7 @@ pub async fn create_note<'r>(notes: &State<Notes>) -> impl Responder<'r, 'static
         section: "notes".to_string(),
         title_error: false,
         notes: notes.get_note_vec().await,
+        text: "".to_string()
     }
 }
 
@@ -85,26 +87,29 @@ pub struct NoteCreate<'v> {
 pub async fn make_note<'r>(
     note_data: Form<NoteCreate<'_>>,
     notes: &State<Notes>,
-) -> impl Responder<'r, 'static> {
-    let mut clean_title: String = note_data
+) -> Result<Redirect, NoteCreateTemplate> {
+    let clean_title: String = note_data
         .title
         .chars()
         .filter(|c| c.is_ascii_alphanumeric() || c.is_whitespace())
         .collect();
-
     // No empty titles.
     if note_data.title == "".to_string() {
-        // Empty title is bad
-        clean_title = "BAD_TITLE".to_string();
+        return Err(NoteCreateTemplate {
+            section: "notes".to_string(),
+            title_error: true,
+            notes: notes.get_note_vec().await,
+            text: note_data.text.to_string(),
+        });
     }
     let res = notes
         .create(clean_title.clone(), note_data.text.to_string())
         .await;
     match res {
-        Ok(_) => return Redirect::to(uri!(show_note(clean_title))),
+        Ok(_) => return Ok(Redirect::to(uri!(show_note(clean_title)))),
         Err(e) => {
-            println!("{:#?}", e);
-            return Redirect::to(uri!(create_note()));
+            // println!("{:#?}", e);
+            return Ok(Redirect::to(uri!(create_note())));
         }
     }
 }
