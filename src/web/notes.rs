@@ -27,7 +27,7 @@ pub fn stage() -> AdHoc {
 
 #[get("/notes")]
 pub async fn show_notes<'r>(notes: &State<Notes>) -> impl Responder<'r, 'static> {
-    println!("{:#?}",notes.get_note_vec().await);
+    println!("{:#?}", notes.get_note_vec().await);
     NotesPageTemplate {
         notes: notes.get_note_vec().await,
         section: "notes".to_string(),
@@ -72,12 +72,12 @@ pub async fn create_note<'r>(notes: &State<Notes>) -> impl Responder<'r, 'static
         section: "notes".to_string(),
         title_error: false,
         notes: notes.get_note_vec().await,
-        text: "".to_string()
+        text: "".to_string(),
     }
 }
 
 // The node form data
-#[derive(FromForm)]
+#[derive(FromForm, Debug)]
 pub struct NoteCreate<'v> {
     title: &'v str,
     text: &'v str,
@@ -119,13 +119,16 @@ pub async fn update_note<'r>(
     note_data: Form<NoteCreate<'_>>,
     notes: &State<Notes>,
 ) -> impl Responder<'r, 'static> {
-    let res = notes
+    println!("{:?}", note_data);
+    let _res = notes
         .update_note(note_data.title.to_string(), note_data.text.to_string())
         .await;
-    match res {
-        Ok(_) => Redirect::to(uri!(show_note(note_data.title))),
-        Err(_) => Redirect::to(uri!(create_note())),
-    }
+    // println!("{:#?}", res);
+    // match res {
+    //     Ok(_) => Redirect::to(uri!(show_note(note_data.title))),
+    //     Err(_) => Redirect::to(uri!(show_note(note_data.title))),
+    // }
+    Redirect::to(uri!(show_note(note_data.title)))
 }
 
 #[get("/notes/delete/<doc_id>")]

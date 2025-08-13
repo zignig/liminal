@@ -88,7 +88,7 @@ impl Notes {
         blobs: BlobsProtocol,
         docs: Docs,
     ) -> Result<Self> {
-        let author = author;
+        let author = author;        
         let doc = match ticket {
             Some(ticket) => {
                 let ticket = DocTicket::from_str(&ticket)?;
@@ -201,14 +201,19 @@ impl Notes {
         if text.len() > MAX_TEXT_LEN {
             bail!("text is too long, max size is {MAX_TEXT_LEN}");
         };
-        let mut note_res = self.get_note(id.clone()).await;
-        let mut note = match note_res {
-            Ok(note) => note,
-            Err(_) => Note::missing_note(id.clone()),
-        };
+        let mut note = self.get_note(id.clone()).await?;
+        // let mut note = match note_res {
+        //     Ok(note) => note,
+        //     Err(_) => Note::missing_note("borked"),
+        // };
+        print!("{:#?}",note);
         note.text = text;
-        note.updated = Utc::now().timestamp();
-        self.update_bytes(id, note).await
+        // note.updated = Utc::now().timestamp();
+        let res = self.update_bytes(id.as_bytes(), note).await;
+        match res {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn delete_hidden(&self) -> Result<()> {

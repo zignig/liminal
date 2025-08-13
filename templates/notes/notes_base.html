@@ -9,8 +9,8 @@
 <ul class="menu-list">
     <li>
         <ul>
-            {% for note in notes %}
-            <li><a href="/notes/show/{{note}}"> {{ note }}</a></li>
+            {% for item in notes %}
+            <li><a href="/notes/show/{{item}}"> {{ item }}</a></li>
             {% endfor %}
         </ul>
     </li>

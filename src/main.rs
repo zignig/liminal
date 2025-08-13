@@ -169,7 +169,7 @@ async fn main() -> Result<()> {
     // let h = Hash::from_str("c7c8b609d602b156d9a485ee7d3c543c4f31da255e12177cc88a5d4e10da7d3c")?;
     // let val = base_notes.bounce_up(h).await;
     // println!("{:#?}", val);
-    
+
     // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
 
