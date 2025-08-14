@@ -2,7 +2,6 @@
 ///! Using rocket and tokio
 ///! Testing ground docs,blobs and gossip
 ///! It should be a usefull interface
-
 use std::{
     net::{Ipv4Addr, SocketAddrV4},
     str::FromStr,
@@ -164,7 +163,7 @@ async fn main() -> Result<()> {
     };
 
     // Some notes noodling
-    
+
     // base_notes.create("_meta".to_string(),"meta".to_string()).await.unwrap();
     // base_notes.add("test".to_string(),"test_data".to_string()).await.unwrap();
     // base_notes.add("chicken wings".to_string(),"MMM tasty".to_string()).await.unwrap();
@@ -183,10 +182,15 @@ async fn main() -> Result<()> {
     // let (sender, receiver) = gossip.subscribe(topic, peer_ids.clone()).await?.split();
 
     // Replica gossip
-    let mut replica =
-        replicate::ReplicaGossip::new(topic, blobs.clone(), gossip.clone(), peer_ids.clone())
-            .await
-            .unwrap();
+    let mut replica = replicate::ReplicaGossip::new(
+        topic,
+        blobs.clone(),
+        gossip.clone(),
+        peer_ids.clone(),
+        endpoint.secret_key().clone(),
+    )
+    .await
+    .unwrap();
 
     replica.run().await?;
 
@@ -217,7 +221,7 @@ async fn main() -> Result<()> {
             .manage(base_notes.clone())
             .manage(fileset.clone())
             .manage(blobs.clone())
-            .register("/",catchers![web::auth::unauthorized])
+            .register("/", catchers![web::auth::unauthorized])
             .attach(web::stage())
             .attach(web::assets::stage())
             .attach(web::services::stage())

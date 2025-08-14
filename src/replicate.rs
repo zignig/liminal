@@ -9,7 +9,7 @@ use bytes::Bytes;
 use chrono::Local;
 use dashmap::DashMap;
 use iroh::{NodeAddr, PublicKey, SecretKey};
-use iroh_blobs::{BlobsProtocol, Hash, format::collection::Collection, hashseq::HashSeq};
+use iroh_blobs::{api::blobs::Blobs, format::collection::Collection, hashseq::HashSeq, BlobsProtocol, Hash};
 
 use iroh_docs::NamespaceId;
 use iroh_gossip::{
@@ -45,7 +45,8 @@ pub struct ReplicaGossip {
     blobs: BlobsProtocol,
     roots: DashMap<Hash, Vec<NodeAddr>>,
     expire: DashMap<u64, Hash>,
-    peers : Vec<PublicKey>
+    peers: Vec<PublicKey>,
+    secret: SecretKey
 }
 
 impl ReplicaGossip {
@@ -54,24 +55,49 @@ impl ReplicaGossip {
         blobs: BlobsProtocol,
         gossip: Gossip,
         peers: Vec<PublicKey>,
+        secret: SecretKey
     ) -> Result<Self> {
-
         Ok(Self {
             topic: topic,
             gossip: gossip,
             blobs: blobs.clone(),
             roots: DashMap::new(),
             expire: DashMap::new(),
-            peers: peers
+            peers: peers,
+            secret: secret
         })
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        let (sender, receiver) = self.gossip.subscribe(self.topic, self.peers.clone()).await?.split();
+        let (sender, receiver) = self
+            .gossip
+            .subscribe(self.topic, self.peers.clone())
+            .await?
+            .split();
         // Start the receiver
         task::spawn(subscribe_loop(receiver));
-
+        task::spawn(publish_loop(sender,self.blobs.clone(),self.secret.clone()));
         Ok(())
+    }
+}
+
+pub async fn publish_loop(sender: GossipSender,blobs: BlobsProtocol, secret: SecretKey) -> Result<()> {
+        loop {
+        println!("Boop");
+        let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
+        while let Some(event) = t.next().await {
+            match event {
+                Ok(tag) => {
+                    let message = Message::Upkey { key: tag.hash };
+                    println!("Sending --- {:?}", &message);
+                    let encoded_message = SignedMessage::sign_and_encode(&secret, &message)?;
+                    sender.broadcast(encoded_message).await?;
+                }
+                Err(_) => todo!(),
+            }
+        }
+        // TODO : make this self aligning.
+        tokio::time::sleep(Duration::from_secs(20)).await;
     }
 }
 
@@ -84,14 +110,13 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver) -> Result<()> {
                 Message::Whohas { key } => println!("whohas"),
                 Message::IHave { key } => println!("ihave"),
                 Message::Message { text } => println!("message"),
-                Message::Upkey { key } =>println!("uplkey"),
-                Message::Document { key } =>println!("document"),
+                Message::Upkey { key } => println!("uplkey"),
+                Message::Document { key } => println!("document"),
             }
         }
     }
-    Ok(()) 
+    Ok(())
 }
-
 
 pub async fn subscribe_loop_old(mut receiver: GossipReceiver, blobs: BlobsProtocol) -> Result<()> {
     // init a peerid -> name hashmap
@@ -152,29 +177,29 @@ pub async fn subscribe_loop_old(mut receiver: GossipReceiver, blobs: BlobsProtoc
     Ok(())
 }
 
-pub async fn publish_loop(
-    sender: GossipSender,
-    blobs: BlobsProtocol,
-    secret: SecretKey,
-) -> Result<()> {
-    loop {
-        let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
-        while let Some(event) = t.next().await {
-            match event {
-                Ok(tag) => {
-                    let message = Message::Upkey { key: tag.hash };
-                    // println!("Sending --- {:?}", &message);
-                    let encoded_message = SignedMessage::sign_and_encode(&secret, &message)?;
-                    sender.broadcast(encoded_message).await?;
-                }
-                Err(_) => todo!(),
-            }
-            // tokio::time::sleep(Duration::from_secs(1)).await;
-        }
-        // TODO : make this self aligning.
-        tokio::time::sleep(Duration::from_secs(20)).await;
-    }
-}
+// pub async fn publish_loop(
+//     sender: GossipSender,
+//     blobs: BlobsProtocol,
+//     secret: SecretKey,
+// ) -> Result<()> {
+//     loop {
+//         let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
+//         while let Some(event) = t.next().await {
+//             match event {
+//                 Ok(tag) => {
+//                     let message = Message::Upkey { key: tag.hash };
+//                     // println!("Sending --- {:?}", &message);
+//                     let encoded_message = SignedMessage::sign_and_encode(&secret, &message)?;
+//                     sender.broadcast(encoded_message).await?;
+//                 }
+//                 Err(_) => todo!(),
+//             }
+//             // tokio::time::sleep(Duration::from_secs(1)).await;
+//         }
+//         // TODO : make this self aligning.
+//         tokio::time::sleep(Duration::from_secs(20)).await;
+//     }
+// }
 
 // Stolen from CHAT.
 // Message Structs
@@ -208,4 +233,3 @@ impl SignedMessage {
         Ok(encoded.into())
     }
 }
-
