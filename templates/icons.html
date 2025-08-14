@@ -1,14 +1,22 @@
 {% extends "base.html" %}
 
 {% block content %}
-<ul>
-    {% for icon in icons %}
-    <li>
-        <span class="icon is-large">
-            <i class="{{ icon }}"></i> 
-        </span>
-        {{ icon }}
-    </li>
-    {% endfor %}
-</ul>
+<div class="fixed-grid has-3-cols">
+    <div class="grid">
+        {% for icon in icons %}
+        <div class="cell">
+            <div class="box">
+                <div class="icon-text">
+                    <span class="icon is-large">
+                        <i class="{{ icon }} fa-2x"></i>
+                    </span>
+                    <span class="icon-name">
+                        {{ icon }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
 {% endblock %}

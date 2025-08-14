@@ -90,3 +90,10 @@ pub struct IconsPageTemplate {
     pub section: String,
     pub icons: Vec<String>,
 }
+
+// icon listing
+#[derive(Template, WebTemplate)]
+#[template(path = "admin.html")]
+pub struct AdminPageTemplate {
+    pub section: String,
+}

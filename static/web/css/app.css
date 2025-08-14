@@ -18,3 +18,7 @@
 .menu-list a { 
     font-size: 1.1em;
 }
+
+span.icon-name { 
+    padding: 0.5em;
+}

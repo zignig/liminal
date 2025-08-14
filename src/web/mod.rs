@@ -6,7 +6,7 @@ use std::str::FromStr;
 use crate::notes::Notes;
 use crate::store::FileSet;
 use crate::templates::{
-    GltfPageTemplate, HomePageTemplate, IconsPageTemplate, NetworkPageTemplate, NodePageTemplate,
+    AdminPageTemplate, GltfPageTemplate, HomePageTemplate, IconsPageTemplate, NetworkPageTemplate, NodePageTemplate
 };
 use chrono::Local;
 use iroh_blobs::ticket::BlobTicket;
@@ -37,7 +37,8 @@ pub fn stage() -> AdHoc {
                 network,
                 nodes,
                 auth::login,
-                show_icons
+                show_icons,
+                admin_page
             ],
         )
     })
@@ -47,6 +48,13 @@ pub fn stage() -> AdHoc {
 pub async fn index<'r>() -> impl Responder<'r, 'static> {
     HomePageTemplate {
         section: "".to_string(),
+    }
+}
+
+#[get("/admin")]
+pub async fn admin_page<'r>() -> impl Responder<'r, 'static> {
+    AdminPageTemplate {
+        section: "admin".to_string(),
     }
 }
 

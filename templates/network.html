@@ -2,6 +2,9 @@
 
 {% block content %}
 <div class="block">
+        {% if nodes.len() == 0 %}
+        <h1 class="title">No Connected nodes</h1>
+        {% endif %}
         {% for node in nodes %}
         <button class="button"><a href="network/{{node}}">{{node}}</a></button>
         {% endfor %}

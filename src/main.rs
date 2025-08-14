@@ -181,7 +181,7 @@ async fn main() -> Result<()> {
             .await
             .unwrap();
 
-    replica.run();
+    replica.run().await?;
 
     // Move all this into the replicate
     // subscribe and print loop

@@ -5,7 +5,6 @@
 
 use anyhow::{Result, anyhow};
 use iroh::{NodeId, PublicKey, SecretKey};
-use iroh_docs::api::protocol::AuthorSetDefaultResponse;
 use redb::{Database, Table, TableDefinition, TableHandle, WriteTransaction};
 use std::{fs, path::PathBuf};
 
