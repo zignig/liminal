@@ -2,6 +2,7 @@
 
 use crate::notes::{self, Notes};
 use crate::templates::{NoteCreateTemplate, NoteEditTemplate, NotePageTemplate, NotesPageTemplate};
+use crate::web::auth::User;
 
 use rocket::State;
 use rocket::fairing::AdHoc;
@@ -52,7 +53,7 @@ pub async fn show_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder
 }
 
 #[get("/notes/edit/<doc_id>")]
-pub async fn edit_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder<'r, 'static> {
+pub async fn edit_note<'r>(doc_id: &str, notes: &State<Notes>,_user:User) -> impl Responder<'r, 'static> {
     let doc_res = notes.get_note(doc_id.to_string()).await;
     let note = match doc_res {
         Ok(doc) => doc,

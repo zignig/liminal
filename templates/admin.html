@@ -3,13 +3,13 @@
 {% block content %}
 <h1 class="title">Admin page</h1>
 
-Interface for administering nodes,keys, replicas , trust, 
+Interface for administering nodes,keys, replicas , trust,
 <p></p>
 have a bunch of cards like this (perhaps in columns)
 <hr>
 <div class="card">
   <header class="card-header">
-    <p class="card-header-title">Component</p>
+    <p class="card-header-title">Users</p>
     <button class="card-header-icon" aria-label="more options">
       <span class="icon">
         <i class="fas fa-angle-down" aria-hidden="true"></i>
@@ -18,7 +18,7 @@ have a bunch of cards like this (perhaps in columns)
   </header>
   <div class="card-content">
     <div class="content">
-    Admin editing stuff goes here 
+      Admin editing stuff goes here
       <time datetime="2016-1-1">11:09 PM - 1 Jan 2016</time>
     </div>
   </div>
@@ -27,5 +27,26 @@ have a bunch of cards like this (perhaps in columns)
     <a href="#" class="card-footer-item">Edit</a>
     <a href="#" class="card-footer-item">Delete</a>
   </footer>
+</div>
+<hr>
+<h3 class="title">Other Links</h3>
+<!-- links to other pages -->
+<div class="grid">
+  <div class="cell">
+    <a href="/icons">
+      <span class="icon ">
+        <i class="fas fa-icons" aria-hidden="true"></i>
+      </span>
+      <span>Icons</span>
+    </a>
+  </div>
+  <div class="cell">
+    <a href="/viewer">
+      <span class="icon ">
+        <i class="fas fa-eye" aria-hidden="true"></i>
+      </span>
+      <span>Gltf Viewer</span>
+    </a>
+  </div>
 </div>
 {% endblock %}

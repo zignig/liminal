@@ -8,6 +8,7 @@ use crate::store::FileSet;
 use crate::templates::{
     AdminPageTemplate, GltfPageTemplate, HomePageTemplate, IconsPageTemplate, NetworkPageTemplate, NodePageTemplate
 };
+use crate::web::auth::User;
 use chrono::Local;
 use iroh_blobs::ticket::BlobTicket;
 use iroh_blobs::{BlobsProtocol, HashAndFormat};
@@ -24,7 +25,7 @@ pub mod notes;
 pub mod services;
 
 // Run these things
-pub fn stage() -> AdHoc {
+pub(crate) fn stage() -> AdHoc {
     AdHoc::on_ignite("Web interface", |rocket| async {
         rocket.mount(
             "/",
@@ -37,6 +38,7 @@ pub fn stage() -> AdHoc {
                 network,
                 nodes,
                 auth::login,
+                auth::login_post,
                 show_icons,
                 admin_page
             ],
@@ -45,14 +47,14 @@ pub fn stage() -> AdHoc {
 }
 
 #[get("/")]
-pub async fn index<'r>() -> impl Responder<'r, 'static> {
+pub async fn index<'r>(_user: User) -> impl Responder<'r, 'static> {
     HomePageTemplate {
         section: "".to_string(),
     }
 }
 
 #[get("/admin")]
-pub async fn admin_page<'r>() -> impl Responder<'r, 'static> {
+pub async fn admin_page<'r>(_user: User) -> impl Responder<'r, 'static> {
     AdminPageTemplate {
         section: "admin".to_string(),
     }
