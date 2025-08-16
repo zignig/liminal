@@ -1,0 +1,17 @@
+# Replicator
+
+The replicator is a gossip channel that is set up to act like an ethernet broadcast domain, instead of mac addresses it will collect and maintain a table of hashes vs active nodes that claim to have the blobs.
+
+## Internal data representation
+
+1. hash of  BlobHash -> Vector of Node ID.
+1. timestamp -> BlobHash
+1. timestamp -> Node
+
+Every X seconds , go through and expire Blobs and Nodes older than a given time.
+
+## Messages between nodes
+
+1. WhoHas - broadcast to all nodes and query if any node has  the given hash.
+1. IHave - broadcast (perhaps a unicast through a irpc binding) that returns a list of know nodes for the hash
+

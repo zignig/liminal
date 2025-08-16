@@ -9,7 +9,9 @@ use bytes::Bytes;
 use chrono::Local;
 use dashmap::DashMap;
 use iroh::{NodeAddr, PublicKey, SecretKey};
-use iroh_blobs::{api::blobs::Blobs, format::collection::Collection, hashseq::HashSeq, BlobsProtocol, Hash};
+use iroh_blobs::{
+    BlobsProtocol, Hash, api::blobs::Blobs, format::collection::Collection, hashseq::HashSeq,
+};
 
 use iroh_docs::NamespaceId;
 use iroh_gossip::{
@@ -46,7 +48,7 @@ pub struct ReplicaGossip {
     roots: DashMap<Hash, Vec<NodeAddr>>,
     expire: DashMap<u64, Hash>,
     peers: Vec<PublicKey>,
-    secret: SecretKey
+    secret: SecretKey,
 }
 
 impl ReplicaGossip {
@@ -55,7 +57,7 @@ impl ReplicaGossip {
         blobs: BlobsProtocol,
         gossip: Gossip,
         peers: Vec<PublicKey>,
-        secret: SecretKey
+        secret: SecretKey,
     ) -> Result<Self> {
         Ok(Self {
             topic: topic,
@@ -64,7 +66,7 @@ impl ReplicaGossip {
             roots: DashMap::new(),
             expire: DashMap::new(),
             peers: peers,
-            secret: secret
+            secret: secret,
         })
     }
 
@@ -76,20 +78,27 @@ impl ReplicaGossip {
             .split();
         // Start the receiver
         task::spawn(subscribe_loop(receiver));
-        task::spawn(publish_loop(sender,self.blobs.clone(),self.secret.clone()));
+        task::spawn(publish_loop(
+            sender,
+            self.blobs.clone(),
+            self.secret.clone(),
+        ));
         Ok(())
     }
 }
 
-pub async fn publish_loop(sender: GossipSender,blobs: BlobsProtocol, secret: SecretKey) -> Result<()> {
-        loop {
-        println!("Boop");
+pub async fn publish_loop(
+    sender: GossipSender,
+    blobs: BlobsProtocol,
+    secret: SecretKey,
+) -> Result<()> {
+    loop {
         let mut t = blobs.store().tags().list_prefix("col").await.unwrap();
         while let Some(event) = t.next().await {
             match event {
                 Ok(tag) => {
                     let message = Message::Upkey { key: tag.hash };
-                    println!("Sending --- {:?}", &message);
+                    // println!("Sending --- {:?}", &message);
                     let encoded_message = SignedMessage::sign_and_encode(&secret, &message)?;
                     sender.broadcast(encoded_message).await?;
                 }
@@ -110,7 +119,7 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver) -> Result<()> {
                 Message::Whohas { key } => println!("whohas"),
                 Message::IHave { key } => println!("ihave"),
                 Message::Message { text } => println!("message"),
-                Message::Upkey { key } => println!("uplkey"),
+                Message::Upkey { key } => println!("Upkey {:?}", key),
                 Message::Document { key } => println!("document"),
             }
         }

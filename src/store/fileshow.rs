@@ -1,13 +1,17 @@
 // This is an attempt to convert collections into a directory structure
 
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::{Result, anyhow};
 use bytes::Bytes;
 use dashmap::DashMap;
 use fs_tree::FsTree;
-use iroh_blobs::{BlobsProtocol, Hash, format::collection::Collection};
+use iroh_blobs::{
+    BlobFormat, BlobsProtocol, Hash, format::collection::Collection, hashseq::HashSeq,
+    ticket::BlobTicket,
+};
 use n0_future::StreamExt;
+use n0_watcher::Watcher;
 
 #[derive(Debug, Clone)]
 pub struct FileSet(Arc<Inner>);
@@ -69,7 +73,7 @@ impl FileSet {
     }
 
     // Hands back a file or folder from a path request
-    pub async fn get(&self, root: String, path: &PathBuf) -> Result<Option<RenderType>>{
+    pub async fn get(&self, root: String, path: &PathBuf) -> Result<Option<RenderType>> {
         // Do we have the collection key at all ?
         if self.0.roots.contains_key(&root) {
             // Check to see if is already expanded
@@ -90,6 +94,10 @@ impl FileSet {
                 if let Some(mut base) = self.0.roots.get_mut(&root) {
                     the_dir = match base.value() {
                         Item::Unloaded { hash } => {
+                            // println!("{:?}",base.key());
+                            // let node = self.0.blobs.endpoint().node_addr().initialized().await;
+                            // let ticket = BlobTicket::new(node, *hash, BlobFormat::HashSeq);
+                            // println!("{:?}", ticket.to_string());
                             // load the collection and covert to fs
                             let collection =
                                 Collection::load(hash.clone(), self.0.blobs.store()).await?;
@@ -101,7 +109,7 @@ impl FileSet {
                             }
                             *base = Item::Loaded {
                                 directories: directories.clone(),
-                                links: links,
+                                links: links.clone(),
                                 hash: hash.clone(),
                             };
                             Some(directories)
@@ -119,20 +127,18 @@ impl FileSet {
                 if let Some(d) = val {
                     match d {
                         FsTree::Regular => {
-                            // This should return the actual file data. 
+                            // This should return the actual file data.
                             // needs to get size , mime type ( mapped from file extension)
                             let name = path.file_name().unwrap().display().to_string();
-                            return Ok(Some(RenderType::File {
-                                file_name: name,
-                            }));
+                            return Ok(Some(RenderType::File { file_name: name }));
                         }
                         FsTree::Directory(btree_map) => {
-                            for (path, _) in  btree_map.iter() { 
-                                println!("{:?} {:?}",path.display().to_string(),path.extension());
+                            for (path, _) in btree_map.iter() {
+                                println!("{:?} {:?}", path.display().to_string(), path.extension());
                             }
                             let items = btree_map.keys().map(|f| f.display().to_string()).collect();
-                            return Ok(Some(RenderType::Folder { items: items }))
-                        },
+                            return Ok(Some(RenderType::Folder { items: items }));
+                        }
                         _ => return Ok(None),
                     }
                 }

@@ -23,6 +23,7 @@ use tokio::signal::ctrl_c;
 
 mod cli;
 mod config;
+mod fren;
 mod notes;
 mod replicate;
 mod store;
@@ -31,6 +32,9 @@ mod web;
 
 use cli::Command;
 use cli::Ticket;
+use fren::FrenApi;
+
+use crate::fren::FREN_ALPN;
 
 #[macro_use]
 extern crate rocket;
@@ -115,11 +119,15 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
 
+    // FREN !
+    let fren_api = FrenApi::spawn();
+
     // setup router
     let router = iroh::protocol::Router::builder(endpoint.clone())
         .accept(GOSSIP_ALPN, gossip.clone())
         .accept(BLOBS_ALPN, blobs.clone())
         .accept(DOCS_ALPN, docs.clone())
+        .accept(FREN_ALPN, fren_api.expose().unwrap())
         .spawn();
 
     // join the gossip topic by connecting to known peers, if any
@@ -169,12 +177,13 @@ async fn main() -> Result<()> {
     // base_notes.add("chicken wings".to_string(),"MMM tasty".to_string()).await.unwrap();
     // Some fixes
     // base_notes.fix_title("".to_string()).await.unwrap();
-    // let val = base_notes.delete_hidden().await;
-    // println!("{:#?}", val);
-    // //let val = base_notes.bounce_down().await;
+    let val = base_notes.delete_hidden().await;
+    println!("{:#?}", val);
+
+    let val = base_notes.bounce_down().await;
     // let h = Hash::from_str("c7c8b609d602b156d9a485ee7d3c543c4f31da255e12177cc88a5d4e10da7d3c")?;
     // let val = base_notes.bounce_up(h).await;
-    // println!("{:#?}", val);
+    println!("{:#?}", val);
 
     // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());

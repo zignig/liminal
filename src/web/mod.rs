@@ -47,7 +47,7 @@ pub(crate) fn stage() -> AdHoc {
 }
 
 #[get("/")]
-pub async fn index<'r>(_user: User) -> impl Responder<'r, 'static> {
+pub async fn index<'r>(user: User) -> impl Responder<'r, 'static> {
     HomePageTemplate {
         section: "".to_string(),
     }

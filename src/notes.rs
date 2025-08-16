@@ -3,6 +3,17 @@
 // With alterations...
 // https://github.com/n0-computer/iroh-examples/blob/main/tauri-todos/src-tauri/src/todos.rs
 
+// It turns out that iroh-docs uses a _weird_ prefix key system (for shared docs apparently)
+// This means that if you write a key that is a prefix of any other it will destroy keys
+// I don't think this is sane... but woteva.
+
+// This means that all keys in the docs system need to have a delimiter at the end
+// so they don't prefix
+// when writing keys it appending a null byte on the end will fix this
+// as  per https://github.com/n0-computer/iroh-docs/issues/55
+// So ... when keys are written or read they need to have a null byte added
+// or removed as they come in and out of docs. Insane...
+
 use std::{cmp::Reverse, str::FromStr, sync::Arc};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
@@ -67,6 +78,8 @@ impl Note {
     }
 }
 
+// All the keys need to be null byte extended , ? I know right
+
 // Notes outer
 #[derive(Debug, Clone)]
 pub struct Notes(Arc<Inner>);
@@ -82,13 +95,14 @@ pub struct Inner {
 }
 
 impl Notes {
+    // Create a new docset
     pub async fn new(
         ticket: Option<String>,
         author: AuthorId,
         blobs: BlobsProtocol,
         docs: Docs,
     ) -> Result<Self> {
-        let author = author;        
+        let author = author;
         let doc = match ticket {
             Some(ticket) => {
                 let ticket = DocTicket::from_str(&ticket)?;
@@ -153,7 +167,6 @@ impl Notes {
             updated: created,
             is_delete: false,
         };
-
         self.insert_bytes(id.as_bytes(), note.as_bytes()?).await
     }
 
@@ -186,10 +199,12 @@ impl Notes {
     }
 
     pub async fn get_note(&self, id: String) -> Result<Note> {
+        let mut ex_key = id.as_bytes().to_vec();
+        ex_key.push(0);
         let entry_option = self
             .0
             .doc
-            .get_one(Query::single_latest_per_key().key_exact(&id))
+            .get_one(Query::single_latest_per_key().key_exact(&ex_key))
             .await?;
         match entry_option {
             Some(entry) => self.note_from_entry(&entry).await,
@@ -217,7 +232,6 @@ impl Notes {
 
     pub async fn delete_hidden(&self) -> Result<()> {
         let entries = self.0.doc.get_many(Query::single_latest_per_key()).await?;
-        // delete hidden docs ; ( admin move )
         tokio::pin!(entries);
         while let Some(entry) = entries.next().await {
             let entry = entry?;
@@ -242,11 +256,15 @@ impl Notes {
     }
 
     // Doc data manipulation
+
+    // TODO null byte the id for weird reasons
     async fn insert_bytes(&self, key: impl AsRef<[u8]>, value: Bytes) -> Result<()> {
-        self.0
-            .doc
-            .set_bytes(self.0.author, key.as_ref().to_vec(), value)
-            .await?;
+        // null byte exend the key
+        let mut ex_key = key.as_ref().to_vec();
+        // add the null byte, why ??
+        ex_key.push(0);
+        // harrahs b5 to not do this
+        self.0.doc.set_bytes(self.0.author, ex_key, value).await?;
         Ok(())
     }
 
@@ -271,33 +289,39 @@ impl Notes {
         while let Some(entry) = entries.next().await {
             let entry = entry?;
             let note = self.note_from_entry(&entry).await?;
-            // if !note.is_delete {
-            //     notes.push(note)
-            // }
-            let h = self.0.blobs.add_bytes(note.text).await?.hash;
-            let p = note.id.clone();
-            notes.push((format!("{p}"), h));
+            if !note.is_delete {
+                let h = self.0.blobs.add_bytes(note.text).await?.hash;
+                let mut p = note.id.clone();
+                // add markdown file extension for good measure
+                p.push_str(".md");
+                notes.push((format!("{p}"), h));
+            }
         }
         print!("{:#?}", notes);
         let col = notes.into_iter().collect::<Collection>();
         let col_hash = col.store(&self.0.blobs).await?;
-        let dt = Local::now().to_rfc3339().to_owned();
+        // tag it for replication
+        let dt = Local::now().timestamp();
         self.0
             .blobs
             .tags()
             .set(format!("col-{}", dt), &col_hash)
             .await?;
-        println!("{:?}", col_hash);
+        println!("notes bounce down {:?}", col_hash);
         Ok(())
     }
 
-    pub async fn bounce_up(&self, hash: Hash) -> Result<()> {
-        let coll = Collection::load(hash, self.0.blobs.store()).await?;
+    pub async fn bounce_up(&self) -> Result<()> {
+        let tag = match self.0.blobs.tags().get("notes").await? {
+            Some(tag) => tag,
+            None => return Err(anyhow!("no notes tag")),
+        };
+        let coll = Collection::load(tag.hash, self.0.blobs.store()).await?;
         println!("{:#?}", coll);
-        for (name,hash) in coll.iter() { 
+        for (name, hash) in coll.iter() {
             let data_bytes = self.0.blobs.get_bytes(hash.as_bytes()).await?;
             let text = String::from_utf8(data_bytes.to_vec())?;
-            self.create(name.clone(),text).await?
+            self.create(name.clone(), text).await?
         }
         Ok(())
     }
