@@ -2,8 +2,8 @@
 //!
 
 use iroh::Watcher;
-use iroh_blobs::{BlobFormat, BlobsProtocol};
 use iroh_blobs::ticket::BlobTicket;
+use iroh_blobs::{BlobFormat, BlobsProtocol};
 use rocket::response::Responder;
 use rocket::{State, fairing::AdHoc};
 use std::path::PathBuf;
@@ -15,7 +15,7 @@ use crate::{
 
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("File Browser", |rocket| async {
-        rocket.mount("/", routes![coll, files, inner_files,])
+        rocket.mount("/", routes![coll, files, inner_files,asset_file])
     })
 }
 
@@ -46,22 +46,26 @@ pub async fn files<'r>(fileset: &State<FileSet>) -> impl Responder<'r, 'static> 
         segments: vec![],
         prefixes: vec![],
         section: "files".to_string(),
-        ticket: None
+        ticket: None,
     }
 }
 
 #[get("/files/<collection>")]
-pub async fn coll<'r>(collection: &str, fileset: &State<FileSet>,blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> {
+pub async fn coll<'r>(
+    collection: &str,
+    fileset: &State<FileSet>,
+    blobs: &State<BlobsProtocol>,
+) -> impl Responder<'r, 'static> {
     let res = fileset.get(collection.to_string(), &PathBuf::new()).await;
     match res {
         Ok(res) => {
             let mut ticket_opt: Option<String> = None;
-            if let Some(hash) = fileset.get_hash(collection.to_string()).await.unwrap(){ 
+            if let Some(hash) = fileset.get_hash(collection.to_string()).await.unwrap() {
                 let addr = blobs.endpoint().node_addr().initialized().await;
-                let ticket = BlobTicket::new(addr,hash, BlobFormat::HashSeq);
+                let ticket = BlobTicket::new(addr, hash, BlobFormat::HashSeq);
                 ticket_opt = Some(ticket.to_string());
             }
-            
+
             if let Some(item) = res {
                 match item {
                     RenderType::File { file_name: _ } => return Err(()),
@@ -75,7 +79,7 @@ pub async fn coll<'r>(collection: &str, fileset: &State<FileSet>,blobs: &State<B
                             segments: seg,
                             prefixes: pref,
                             section: "files".to_string(),
-                            ticket: ticket_opt
+                            ticket: ticket_opt,
                         });
                     }
                 }
@@ -98,7 +102,7 @@ pub async fn inner_files<'r>(
         Ok(res) => {
             if let Some(item) = res {
                 match item {
-                    RenderType::File { file_name: _  } => todo!(),
+                    RenderType::File { file_name: _ } => todo!(),
                     RenderType::Folder { items } => {
                         let mut full_path = PathBuf::new();
                         full_path.push(&collection);
@@ -110,14 +114,26 @@ pub async fn inner_files<'r>(
                             segments: entries,
                             prefixes: pref,
                             section: "files".to_string(),
-                            ticket: None
+                            ticket: None,
                         });
                     }
                 }
             } else {
-                return Err(())
+                return Err(());
             }
         }
         Err(_) => return Err(()),
     }
+}
+
+#[get("/asset/<root>/<path..>", rank = 2)]
+pub async fn asset_file<'r>(
+    root: &str,
+    path: PathBuf,
+    fileset: &State<FileSet>,
+) -> impl Responder<'r, 'static> {
+    if let  Ok(_data) = fileset.get_file(root.to_string(), &path).await{
+        return Ok(());
+    }
+    Err(())
 }

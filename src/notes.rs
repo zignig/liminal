@@ -291,10 +291,11 @@ impl Notes {
             let note = self.note_from_entry(&entry).await?;
             if !note.is_delete {
                 let h = self.0.blobs.add_bytes(note.text).await?.hash;
-                let mut p = note.id.clone();
+                let mut file_name = Local::now().format("notes/%Y/%m/%d/").to_string();
+                file_name.push_str(&note.id.clone());
                 // add markdown file extension for good measure
-                p.push_str(".md");
-                notes.push((format!("{p}"), h));
+                file_name.push_str(".md");
+                notes.push((format!("{file_name}"), h));
             }
         }
         print!("{:#?}", notes);
