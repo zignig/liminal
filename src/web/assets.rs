@@ -1,6 +1,9 @@
 //! Get assets in blobs by collection path
 //!
 
+use iroh::Watcher;
+use iroh_blobs::{BlobFormat, BlobsProtocol};
+use iroh_blobs::ticket::BlobTicket;
 use rocket::response::Responder;
 use rocket::{State, fairing::AdHoc};
 use std::path::PathBuf;
@@ -43,14 +46,22 @@ pub async fn files<'r>(fileset: &State<FileSet>) -> impl Responder<'r, 'static> 
         segments: vec![],
         prefixes: vec![],
         section: "files".to_string(),
+        ticket: None
     }
 }
 
 #[get("/files/<collection>")]
-pub async fn coll<'r>(collection: &str, fileset: &State<FileSet>) -> impl Responder<'r, 'static> {
+pub async fn coll<'r>(collection: &str, fileset: &State<FileSet>,blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> {
     let res = fileset.get(collection.to_string(), &PathBuf::new()).await;
     match res {
         Ok(res) => {
+            let mut ticket_opt: Option<String> = None;
+            if let Some(hash) = fileset.get_hash(collection.to_string()).await.unwrap(){ 
+                let addr = blobs.endpoint().node_addr().initialized().await;
+                let ticket = BlobTicket::new(addr,hash, BlobFormat::HashSeq);
+                ticket_opt = Some(ticket.to_string());
+            }
+            
             if let Some(item) = res {
                 match item {
                     RenderType::File { file_name: _ } => return Err(()),
@@ -64,6 +75,7 @@ pub async fn coll<'r>(collection: &str, fileset: &State<FileSet>) -> impl Respon
                             segments: seg,
                             prefixes: pref,
                             section: "files".to_string(),
+                            ticket: ticket_opt
                         });
                     }
                 }
@@ -98,6 +110,7 @@ pub async fn inner_files<'r>(
                             segments: entries,
                             prefixes: pref,
                             section: "files".to_string(),
+                            ticket: None
                         });
                     }
                 }

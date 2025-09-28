@@ -19,5 +19,12 @@
             {% endfor %}
         </tbody>
     </table>
+
+    {% if let Some(ticket) = ticket %}
+    <div class="content ">
+        <p class="wrappy">{{ ticket }}</p>
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}

@@ -1,6 +1,6 @@
 // This is an attempt to convert collections into a directory structure
 
-use std::{path::PathBuf, str::FromStr, sync::Arc};
+use std::{hash, path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::{Result, anyhow};
 use bytes::Bytes;
@@ -70,6 +70,18 @@ impl FileSet {
                     .insert(tag_name, Item::Unloaded { hash: tag.hash });
             }
         }
+    }
+
+    // Hands back the hash the root for building tickets 
+    pub async fn get_hash(&self,root: String) -> Result<Option<Hash>> { 
+        if let Some(base )  = self.0.roots.get(&root){ 
+            let hash = match base.value() {
+                Item::Unloaded { hash } => hash,
+                Item::Loaded { directories: _, links: _ , hash } => hash,
+            };
+            return Ok(Some(*hash));
+        };
+        Ok(None)
     }
 
     // Hands back a file or folder from a path request
@@ -172,6 +184,8 @@ impl FileSet {
     }
 
     pub fn list_roots(&self) -> Vec<String> {
-        self.0.roots.iter().map(|k| k.key().to_string()).collect()
+        let mut items: Vec<String> = self.0.roots.iter().map(|k| k.key().to_string()).collect();
+        items.sort();
+        items
     }
 }

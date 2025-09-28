@@ -19,6 +19,7 @@ pub struct FilePageTemplate {
     pub segments: Vec<String>,
     pub prefixes: Vec<String>,
     pub section: String,
+    pub ticket: Option<String>
 }
 
 // Notes interface

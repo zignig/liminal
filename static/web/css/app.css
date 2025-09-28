@@ -11,14 +11,18 @@
     margin-left: 0.4em;
 }
 
-.content { 
+.content {
     padding: 0.4em;
 }
 
-.menu-list a { 
+.menu-list a {
     font-size: 1.1em;
 }
 
-span.icon-name { 
+span.icon-name {
     padding: 0.5em;
+}
+
+.wrappy {
+    overflow-wrap: anywhere;
 }
