@@ -24,7 +24,7 @@ redb = "2.4.0"
 rocket = { version = "0.5.1", features = [
     "secrets",
     "json",
-    "mtls", 
+    "mtls",
     "serde_json",
     "tls",
 ] }
@@ -37,7 +37,7 @@ tracing-subscriber = "0.3.19"
 walkdir = "2.5.0"
 
 fs-tree = { path = "crates/fs-tree" }
-
+iroh-smol-kv = { path = "crates/iroh-small-kv" }
 # iroh bits 
 iroh = { version = "0.91.1", features = ["discovery-local-network"] }
 iroh-blobs = "0.93.0"
