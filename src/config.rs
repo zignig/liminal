@@ -63,10 +63,10 @@ impl Info {
         let write_tx = db.begin_write()?;
         let _ = Tables::new(&write_tx)?;
         write_tx.commit()?;
-        let read_tx = db.begin_read()?;
-        for i in read_tx.list_tables()? {
-            println!("{:?}", i.name());
-        }
+        // let read_tx = db.begin_read()?;
+        // for i in read_tx.list_tables()? {
+        //     println!("{:?}", i.name());
+        // }
         Ok(Self {
             db: db,
             current: CurrentTransaction::default(),

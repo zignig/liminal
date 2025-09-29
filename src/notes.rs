@@ -281,6 +281,7 @@ impl Notes {
         }
     }
 
+    // Save out the docs as date stamped .md files 
     pub async fn bounce_down(&self) -> Result<()> {
         let entries = self.0.doc.get_many(Query::single_latest_per_key()).await?;
         let mut notes = Vec::new();
@@ -298,7 +299,7 @@ impl Notes {
                 notes.push((format!("{file_name}"), h));
             }
         }
-        print!("{:#?}", notes);
+        // print!("{:#?}", notes);
         let col = notes.into_iter().collect::<Collection>();
         let col_hash = col.store(&self.0.blobs).await?;
         // tag it for replication
@@ -306,9 +307,9 @@ impl Notes {
         self.0
             .blobs
             .tags()
-            .set(format!("col-{}", dt), &col_hash)
+            .set(format!("notes-{}", dt), &col_hash)
             .await?;
-        println!("notes bounce down {:?}", col_hash);
+        // println!("notes bounce down {:?}", col_hash);
         Ok(())
     }
 

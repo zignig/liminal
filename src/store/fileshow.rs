@@ -64,7 +64,7 @@ impl FileSet {
             let tag_name = str::from_utf8(&tag.name.0).unwrap().to_owned();
             if !self.0.roots.contains_key(&tag_name) {
                 //let tag_name = tag.name.to_string();
-                println!("{}", &tag_name);
+                // println!("{}", &tag_name);
                 self.0
                     .roots
                     .insert(tag_name, Item::Unloaded { hash: tag.hash });
@@ -72,12 +72,21 @@ impl FileSet {
         }
     }
 
-    // Hands back the hash the root for building tickets 
-    pub async fn get_hash(&self,root: String) -> Result<Option<Hash>> { 
-        if let Some(base )  = self.0.roots.get(&root){ 
+    pub async fn del_tags(&self, prefix: &str) -> Result<()> {
+        self.0.blobs.store().tags().delete_prefix(prefix).await?;
+        Ok(())
+    }
+
+    // Hands back the hash the root for building tickets
+    pub async fn get_hash(&self, root: String) -> Result<Option<Hash>> {
+        if let Some(base) = self.0.roots.get(&root) {
             let hash = match base.value() {
                 Item::Unloaded { hash } => hash,
-                Item::Loaded { directories: _, links: _ , hash } => hash,
+                Item::Loaded {
+                    directories: _,
+                    links: _,
+                    hash,
+                } => hash,
             };
             return Ok(Some(*hash));
         };

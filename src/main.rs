@@ -19,7 +19,7 @@ use iroh_gossip::{
 use n0_snafu::{Result, ResultExt, format_err};
 use n0_watcher::Watcher;
 use std::path::PathBuf;
-use tokio::signal::ctrl_c;
+use tokio::{signal::ctrl_c, task};
 
 mod cli;
 mod config;
@@ -74,7 +74,7 @@ async fn main() -> Result<()> {
 
     // build our magic endpoint
     let endpoint = Endpoint::builder()
-        .secret_key(secret_key)
+        .secret_key(secret_key.clone())
         .discovery_n0()
         .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, args.bind_port))
         .bind()
@@ -91,7 +91,8 @@ async fn main() -> Result<()> {
 
     // print a ticket that includes our own node id and endpoint addresses
     let ticket = {
-        let me = endpoint.node_addr().initialized().await;
+        let _ = endpoint.home_relay().initialized().await;
+        let me  = endpoint.node_addr().initialized().await;
         let peers = peers.iter().cloned().chain([me]).collect();
         Ticket { peers }
     };
@@ -111,6 +112,9 @@ async fn main() -> Result<()> {
     // TODO make this prettier.
     // Get the file roots
     fileset.fill().await;
+
+    // clear out some old tags ( carefull )
+    //fileset.del_tags("col-17").await.unwrap();
 
     // DOCS !
     let docs_path = PathBuf::from("data/");
@@ -170,50 +174,18 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Some notes noodling
-
-    // base_notes.create("_meta".to_string(),"meta".to_string()).await.unwrap();
-    // base_notes.add("test".to_string(),"test_data".to_string()).await.unwrap();
-    // base_notes.add("chicken wings".to_string(),"MMM tasty".to_string()).await.unwrap();
-    // Some fixes
-    // base_notes.fix_title("".to_string()).await.unwrap();
     let val = base_notes.delete_hidden().await;
     println!("{:#?}", val);
 
     let val = base_notes.bounce_down().await;
-    // let h = Hash::from_str("c7c8b609d602b156d9a485ee7d3c543c4f31da255e12177cc88a5d4e10da7d3c")?;
-    // let val = base_notes.bounce_up(h).await;
     println!("{:#?}", val);
 
     // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
-
-    // let (sender, receiver) = gossip.subscribe(topic, peer_ids.clone()).await?.split();
-
-    // Replica gossip
-    let mut replica = replicate::ReplicaGossip::new(
-        topic,
-        blobs.clone(),
-        gossip.clone(),
-        peer_ids.clone(),
-        endpoint.secret_key().clone(),
-    )
-    .await
-    .unwrap();
-
-    replica.run().await?;
-
-    // Move all this into the replicate
-    // subscribe and print loop
-    // TODO : this should be a construct
-    // task::spawn(replicate::subscribe_loop(receiver, blobs.clone()));
-
-    // task::spawn(replicate::publish_loop(
-    //     sender,
-    //     blobs.clone(),
-    //     endpoint.secret_key().clone(),
-    // ));
-
+    let repl =
+        replicate::Replicator::new(gossip.clone(), blobs.clone(), topic, peer_ids, secret_key.clone())
+            .await?;
+    repl.run().await?;
     // Web interface
 
     if args.web {
