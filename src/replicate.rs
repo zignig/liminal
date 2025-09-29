@@ -59,8 +59,8 @@ pub async fn test_runner(client: Client, secret: SecretKey, blobs: BlobsProtocol
     };
     loop {
         let id = next_op_id();
-        println!("{:?}", id);
-        println!("boop");
+        // println!("{:?}", id);
+        // println!("boop");
         let mut tag_scan = blobs.store().tags().list_prefix("col").await.unwrap();
         while let Some(event) = tag_scan.next().await {
             let tag = event.unwrap();
