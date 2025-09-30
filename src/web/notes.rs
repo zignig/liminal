@@ -9,6 +9,9 @@ use rocket::fairing::AdHoc;
 use rocket::form::Form;
 use rocket::response::{Redirect, Responder};
 
+
+use pulldown_cmark::{Parser, Options};
+
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("Notes Browser", |rocket| async {
         rocket.mount(
@@ -42,8 +45,12 @@ pub async fn show_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder
         Ok(doc) => (doc.text.clone(), doc),
         Err(_) => todo!(),
     };
-    let md =
-        markdown::to_html_with_options(&value, &markdown::Options::gfm()).expect("Bad Markdown");
+
+    let parser = Parser::new(&value);
+    let mut md = String::new();
+    pulldown_cmark::html::push_html(&mut md, parser);
+    // let md =
+    //     markdown::to_html_with_options(&value, &markdown::Options::gfm()).expect("Bad Markdown");
     NotePageTemplate {
         note: note,
         text: md,
