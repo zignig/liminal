@@ -18,6 +18,7 @@ use iroh_gossip::{
 
 use n0_snafu::{Result, ResultExt, format_err};
 use n0_watcher::Watcher;
+use n0_future::StreamExt;
 use std::path::PathBuf;
 use tokio::{signal::ctrl_c, task};
 
@@ -92,7 +93,7 @@ async fn main() -> Result<()> {
     // print a ticket that includes our own node id and endpoint addresses
     let ticket = {
         let _ = endpoint.home_relay().initialized().await;
-        let me  = endpoint.node_addr().initialized().await;
+        let me = endpoint.node_addr().initialized().await;
         let peers = peers.iter().cloned().chain([me]).collect();
         Ticket { peers }
     };
@@ -123,6 +124,12 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
 
+    let mut d = docs.list().await.unwrap();
+    while let Some(docs) = d.next().await {
+        let docs = docs.unwrap();
+        println!("{:#?}", docs);
+    }
+    
     // FREN !
     let fren_api = FrenApi::spawn();
 
@@ -134,6 +141,8 @@ async fn main() -> Result<()> {
         .accept(FREN_ALPN, fren_api.expose().unwrap())
         .spawn();
 
+    // make sure we are connected for tickets
+    let _ = router.endpoint().node_addr().initialized().await;
     // join the gossip topic by connecting to known peers, if any
     let peer_ids: Vec<NodeId> = peers.iter().map(|p| p.node_id).collect();
 
@@ -174,6 +183,11 @@ async fn main() -> Result<()> {
         }
     };
 
+    // during testing , clean out the docs users
+    // with random notes joining , it can get messy.
+    let _e = base_notes.leave().await;
+    let _e = base_notes.share().await;
+
     let val = base_notes.delete_hidden().await;
     println!("{:#?}", val);
 
@@ -182,9 +196,14 @@ async fn main() -> Result<()> {
 
     // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
-    let repl =
-        replicate::Replicator::new(gossip.clone(), blobs.clone(), topic, peer_ids, secret_key.clone())
-            .await?;
+    let repl = replicate::Replicator::new(
+        gossip.clone(),
+        blobs.clone(),
+        topic,
+        peer_ids,
+        secret_key.clone(),
+    )
+    .await?;
     repl.run().await?;
     // Web interface
 

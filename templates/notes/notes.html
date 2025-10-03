@@ -1,6 +1,13 @@
 {% extends "notes/notes_base.html" %}
 
 {% block content %}
+{% if let Some(ticket) = ticket %}
+<article class="message is-dark">
+    <div class="message-body">
+        <p class="wrappy">{{ ticket }}</p>
+    </div>
+</article>
+{% endif %}
 {% endblock %}
 
 {% block noteaction %}

@@ -19,17 +19,17 @@ use std::{cmp::Reverse, str::FromStr, sync::Arc};
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use bytes::Bytes;
 use chrono::{Local, Utc};
-use iroh_blobs::{BlobsProtocol, Hash, format::collection::Collection};
+use iroh_blobs::{BlobsProtocol, format::collection::Collection};
 use iroh_docs::{
     AuthorId, DocTicket, Entry,
-    api::{Doc, protocol::ShareMode},
+    api::{Doc, protocol::{AddrInfoOptions, ShareMode}},
     engine::LiveEvent,
     protocol::Docs,
     store::Query,
 };
 
+use n0_watcher::Watcher;
 use n0_future::{Stream, StreamExt};
-
 use serde::{Deserialize, Serialize};
 
 // Individual notes
@@ -110,7 +110,7 @@ impl Notes {
             }
             None => docs.create().await?,
         };
-        let ticket = doc.share(ShareMode::Write, Default::default()).await?;
+        let ticket = doc.share(ShareMode::Write, AddrInfoOptions::RelayAndAddresses).await?;
 
         Ok(Self(Arc::new(Inner {
             blobs,
@@ -132,7 +132,7 @@ impl Notes {
             Some(doc) => doc,
             None => return Err(anyhow!("Doc does not exist")),
         };
-        let ticket = doc.share(ShareMode::Write, Default::default()).await?;
+        let ticket = doc.share(ShareMode::Write, AddrInfoOptions::RelayAndAddresses).await?;
         let author = author;
         Ok(Self(Arc::new(Inner {
             blobs,
@@ -149,6 +149,16 @@ impl Notes {
 
     pub fn ticket(&self) -> String {
         self.0.ticket.to_string()
+    }
+
+    pub async fn leave(&self) -> Result<()>{ 
+        self.0.doc.leave().await?;
+        Ok(())
+    }
+
+    pub async fn share(&self) -> Result<()> { 
+        self.0.doc.start_sync(vec![]).await?;
+        Ok(())
     }
 
     pub async fn doc_subscribe(&self) -> Result<impl Stream<Item = Result<LiveEvent>> + use<>> {

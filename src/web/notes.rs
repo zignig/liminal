@@ -9,8 +9,7 @@ use rocket::fairing::AdHoc;
 use rocket::form::Form;
 use rocket::response::{Redirect, Responder};
 
-
-use pulldown_cmark::{Parser, Options};
+use pulldown_cmark::{Options, Parser};
 
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("Notes Browser", |rocket| async {
@@ -34,6 +33,7 @@ pub async fn show_notes<'r>(notes: &State<Notes>) -> impl Responder<'r, 'static>
     // println!("{:#?}", notes.get_note_vec().await);
     NotesPageTemplate {
         notes: notes.get_note_vec().await,
+        ticket: Some(notes.ticket()),
         section: "notes".to_string(),
     }
 }
@@ -46,11 +46,20 @@ pub async fn show_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder
         Err(_) => todo!(),
     };
 
-    let parser = Parser::new(&value);
+    // let parser_test = Parser::new_ext(
+    //     &value,
+    //     Options::ENABLE_WIKILINKS | Options::ENABLE_TASKLISTS,
+    // );
+    // for item in parser_test {
+    //     println!("tag {:#?}", item);
+    // }
+    let parser = Parser::new_ext(
+        &value,
+        Options::ENABLE_WIKILINKS | Options::ENABLE_TASKLISTS,
+    );
+
     let mut md = String::new();
     pulldown_cmark::html::push_html(&mut md, parser);
-    // let md =
-    //     markdown::to_html_with_options(&value, &markdown::Options::gfm()).expect("Bad Markdown");
     NotePageTemplate {
         note: note,
         text: md,
@@ -60,7 +69,11 @@ pub async fn show_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder
 }
 
 #[get("/notes/edit/<doc_id>")]
-pub async fn edit_note<'r>(doc_id: &str, notes: &State<Notes>,_user:User) -> impl Responder<'r, 'static> {
+pub async fn edit_note<'r>(
+    doc_id: &str,
+    notes: &State<Notes>,
+    _user: User,
+) -> impl Responder<'r, 'static> {
     let doc_res = notes.get_note(doc_id.to_string()).await;
     let note = match doc_res {
         Ok(doc) => doc,

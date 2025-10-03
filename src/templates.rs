@@ -27,6 +27,7 @@ pub struct FilePageTemplate {
 #[template(path = "notes/notes.html")]
 pub struct NotesPageTemplate {
     pub notes: Vec<String>,
+    pub ticket: Option<String>,
     pub section: String,
 }
 
