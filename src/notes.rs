@@ -323,8 +323,8 @@ impl Notes {
         Ok(())
     }
 
-    pub async fn bounce_up(&self) -> Result<()> {
-        let tag = match self.0.blobs.tags().get("notes").await? {
+    pub async fn bounce_up(&self,id: &str) -> Result<()> {
+        let tag = match self.0.blobs.tags().get(id).await? {
             Some(tag) => tag,
             None => return Err(anyhow!("no notes tag")),
         };
@@ -333,7 +333,8 @@ impl Notes {
         for (name, hash) in coll.iter() {
             let data_bytes = self.0.blobs.get_bytes(hash.as_bytes()).await?;
             let text = String::from_utf8(data_bytes.to_vec())?;
-            self.create(name.clone(), text).await?
+            let split_name  = *name.split("/").collect::<Vec<&str>>().last().unwrap();
+            self.create(split_name.to_string(), text).await?
         }
         Ok(())
     }

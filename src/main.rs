@@ -158,6 +158,7 @@ async fn main() -> Result<()> {
         }
     };
 
+    
     // Testing notes interface
     // Stores the doc id in the config and makes a new one
     // if it is not there.
@@ -185,14 +186,18 @@ async fn main() -> Result<()> {
 
     // during testing , clean out the docs users
     // with random notes joining , it can get messy.
-    let _e = base_notes.leave().await;
-    let _e = base_notes.share().await;
+    // let _e = base_notes.leave().await;
+    // let _e = base_notes.share().await;
 
-    let val = base_notes.delete_hidden().await;
-    println!("{:#?}", val);
+    // let val = base_notes.delete_hidden().await;
+    // println!("{:#?}", val);
 
     let val = base_notes.bounce_down().await;
     println!("{:#?}", val);
+
+    
+    // let val = base_notes.bounce_up("notes-1759571684").await;
+    // println!("{:#?}", val);
 
     // Set liminal, hashed as the topic
     let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
@@ -204,7 +209,9 @@ async fn main() -> Result<()> {
         secret_key.clone(),
     )
     .await?;
+
     repl.run().await?;
+
     // Web interface
 
     if args.web {

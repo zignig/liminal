@@ -61,7 +61,7 @@ pub async fn test_runner(client: Client, secret: SecretKey, blobs: BlobsProtocol
         let id = next_op_id();
         println!("update count {:?}", id);
         // println!("boop");
-        let mut tag_scan = blobs.store().tags().list_prefix("col").await.unwrap();
+        let mut tag_scan = blobs.store().tags().list_prefix("notes").await.unwrap();
         while let Some(event) = tag_scan.next().await {
             let tag = event.unwrap();
             let tag_name = str::from_utf8(&tag.name.0).unwrap().to_owned();
