@@ -16,9 +16,9 @@ use iroh_gossip::{
     proto::TopicId,
 };
 
+use n0_future::StreamExt;
 use n0_snafu::{Result, ResultExt, format_err};
 use n0_watcher::Watcher;
-use n0_future::StreamExt;
 use std::path::PathBuf;
 use tokio::{signal::ctrl_c, task};
 
@@ -112,7 +112,8 @@ async fn main() -> Result<()> {
     let fileset = store::FileSet::new(blobs.clone());
     // TODO make this prettier.
     // Get the file roots
-    fileset.fill().await;
+    fileset.fill("col").await;
+    fileset.fill("notes").await;
 
     // clear out some old tags ( carefull )
     //fileset.del_tags("col-17").await.unwrap();
@@ -129,7 +130,7 @@ async fn main() -> Result<()> {
         let docs = docs.unwrap();
         println!("{:#?}", docs);
     }
-    
+
     // FREN !
     let fren_api = FrenApi::spawn();
 
@@ -158,7 +159,6 @@ async fn main() -> Result<()> {
         }
     };
 
-    
     // Testing notes interface
     // Stores the doc id in the config and makes a new one
     // if it is not there.
@@ -171,6 +171,7 @@ async fn main() -> Result<()> {
             new_author
         }
     };
+
     let base_notes = match conf.get_notes_id() {
         Ok(id) => notes::Notes::from_id(id, base_author, blobs.clone(), docs.clone())
             .await
@@ -187,15 +188,14 @@ async fn main() -> Result<()> {
     // during testing , clean out the docs users
     // with random notes joining , it can get messy.
     // let _e = base_notes.leave().await;
-    // let _e = base_notes.share().await;
+    let _e = base_notes.share().await;
 
     // let val = base_notes.delete_hidden().await;
     // println!("{:#?}", val);
 
     let val = base_notes.bounce_down().await;
-    println!("{:#?}", val);
+    // println!("{:#?}", val);
 
-    
     // let val = base_notes.bounce_up("notes-1759571684").await;
     // println!("{:#?}", val);
 
@@ -222,7 +222,8 @@ async fn main() -> Result<()> {
             .merge(("address", "0.0.0.0"))
             .merge(("port", 8080))
             .merge(("secret_key", rocket_secret_key))
-            .merge(("log_level", "critical"));
+            .merge(("log_level", "critical"))
+            .merge(("cli_colors", "false"));
 
         let _result = rocket::custom(figment)
             .manage(base_notes.clone())

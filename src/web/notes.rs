@@ -31,6 +31,9 @@ pub fn stage() -> AdHoc {
 #[get("/notes")]
 pub async fn show_notes<'r>(notes: &State<Notes>) -> impl Responder<'r, 'static> {
     // println!("{:#?}", notes.get_note_vec().await);
+    // for note in &notes.get_note_vec().await { 
+    //     println!("{:#?}",&note);
+    // }
     NotesPageTemplate {
         notes: notes.get_note_vec().await,
         ticket: Some(notes.ticket()),
@@ -46,6 +49,7 @@ pub async fn show_note<'r>(doc_id: &str, notes: &State<Notes>) -> impl Responder
         Err(_) => todo!(),
     };
 
+    // println!("{:#?}",note);
     // let parser_test = Parser::new_ext(
     //     &value,
     //     Options::ENABLE_WIKILINKS | Options::ENABLE_TASKLISTS,

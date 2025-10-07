@@ -102,7 +102,7 @@ pub async fn message<'r>(
 ) -> &'static str {
     let encoded = web_message.message.trim();
     let r = get_collection(encoded, blobs).await;
-    file_set.fill().await;
+    file_set.fill("col").await;
     println!("Trans info {:#?}", r);
     "should be an error"
 }

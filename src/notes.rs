@@ -22,14 +22,17 @@ use chrono::{Local, Utc};
 use iroh_blobs::{BlobsProtocol, format::collection::Collection};
 use iroh_docs::{
     AuthorId, DocTicket, Entry,
-    api::{Doc, protocol::{AddrInfoOptions, ShareMode}},
+    api::{
+        Doc,
+        protocol::{AddrInfoOptions, ShareMode},
+    },
     engine::LiveEvent,
     protocol::Docs,
     store::Query,
 };
 
-use n0_watcher::Watcher;
 use n0_future::{Stream, StreamExt};
+use n0_watcher::Watcher;
 use serde::{Deserialize, Serialize};
 
 // Individual notes
@@ -88,7 +91,7 @@ pub struct Notes(Arc<Inner>);
 #[derive(Debug, Clone)]
 pub struct Inner {
     blobs: BlobsProtocol,
-    docs: Docs,
+    _docs: Docs,
     doc: Doc,
     ticket: DocTicket,
     author: AuthorId,
@@ -110,11 +113,13 @@ impl Notes {
             }
             None => docs.create().await?,
         };
-        let ticket = doc.share(ShareMode::Write, AddrInfoOptions::RelayAndAddresses).await?;
+        let ticket = doc
+            .share(ShareMode::Write, AddrInfoOptions::RelayAndAddresses)
+            .await?;
 
         Ok(Self(Arc::new(Inner {
             blobs,
-            docs,
+            _docs: docs.clone(),
             doc,
             ticket,
             author,
@@ -132,11 +137,13 @@ impl Notes {
             Some(doc) => doc,
             None => return Err(anyhow!("Doc does not exist")),
         };
-        let ticket = doc.share(ShareMode::Write, AddrInfoOptions::RelayAndAddresses).await?;
+        let ticket = doc
+            .share(ShareMode::Write, AddrInfoOptions::RelayAndAddresses)
+            .await?;
         let author = author;
         Ok(Self(Arc::new(Inner {
             blobs,
-            docs,
+            _docs: docs.clone(),
             doc,
             ticket,
             author,
@@ -151,12 +158,12 @@ impl Notes {
         self.0.ticket.to_string()
     }
 
-    pub async fn leave(&self) -> Result<()>{ 
+    pub async fn leave(&self) -> Result<()> {
         self.0.doc.leave().await?;
         Ok(())
     }
 
-    pub async fn share(&self) -> Result<()> { 
+    pub async fn share(&self) -> Result<()> {
         self.0.doc.start_sync(vec![]).await?;
         Ok(())
     }
@@ -247,7 +254,7 @@ impl Notes {
             let entry = entry?;
             let note = self.note_from_entry(&entry).await?;
             if note.is_delete {
-                println!("{:#?}", note);
+                println!("deleting => {:#?}", note);
                 let val = self
                     .0
                     .doc
@@ -284,14 +291,18 @@ impl Notes {
     }
 
     async fn note_from_entry(&self, entry: &Entry) -> Result<Note> {
-        let id = String::from_utf8(entry.key().to_owned()).context("invalid key")?;
+        let mut id = String::from_utf8(entry.key().to_owned()).context("invalid key")?;
         match self.0.blobs.get_bytes(entry.content_hash()).await {
             Ok(b) => Note::from_bytes(b),
-            Err(_) => Ok(Note::missing_note(id)),
+            Err(e) => {
+                id.pop();
+                println!("{:#?} this is probably it {:#?}", &id,e);
+                return Ok(Note::missing_note(id));
+            }
         }
     }
 
-    // Save out the docs as date stamped .md files 
+    // Save out the docs as date stamped .md files
     pub async fn bounce_down(&self) -> Result<()> {
         let entries = self.0.doc.get_many(Query::single_latest_per_key()).await?;
         let mut notes = Vec::new();
@@ -323,7 +334,7 @@ impl Notes {
         Ok(())
     }
 
-    pub async fn bounce_up(&self,id: &str) -> Result<()> {
+    pub async fn bounce_up(&self, id: &str) -> Result<()> {
         let tag = match self.0.blobs.tags().get(id).await? {
             Some(tag) => tag,
             None => return Err(anyhow!("no notes tag")),
@@ -333,8 +344,15 @@ impl Notes {
         for (name, hash) in coll.iter() {
             let data_bytes = self.0.blobs.get_bytes(hash.as_bytes()).await?;
             let text = String::from_utf8(data_bytes.to_vec())?;
-            let split_name  = *name.split("/").collect::<Vec<&str>>().last().unwrap();
-            self.create(split_name.to_string(), text).await?
+            let mut split_name = name
+                .split("/")
+                .collect::<Vec<&str>>()
+                .last()
+                .unwrap()
+                .to_string();
+            // remove the .md
+            split_name.truncate(split_name.len() - 3);
+            self.create(split_name, text).await?
         }
         Ok(())
     }

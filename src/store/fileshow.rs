@@ -50,13 +50,13 @@ impl FileSet {
     }
 
     // Searches tags and fills the default dictionary.
-    pub async fn fill(&self) {
+    pub async fn fill(&self,prefix: &str) {
         let mut tag_scan = self
             .0
             .blobs
             .store()
             .tags()
-            .list_prefix("col")
+            .list_prefix(prefix)
             .await
             .unwrap();
         while let Some(event) = tag_scan.next().await {
