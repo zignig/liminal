@@ -52,6 +52,7 @@ irpc = "0.7.0"
 irpc-iroh = "0.7.0"
 tracing = "0.1.41"
 pulldown-cmark = "0.13.0"
+iroh-base = "0.91.1"
 
 [workspace]
 members = ["crates/*"]

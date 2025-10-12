@@ -15,6 +15,7 @@ use iroh_gossip::{
     net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
+use iroh_base::ticket::NodeTicket;
 
 use n0_future::StreamExt;
 use n0_snafu::{Result, ResultExt, format_err};
@@ -143,7 +144,8 @@ async fn main() -> Result<()> {
         .spawn();
 
     // make sure we are connected for tickets
-    let _ = router.endpoint().node_addr().initialized().await;
+    let addr = router.endpoint().node_addr().initialized().await;
+    let node_ticket = NodeTicket::new(addr);
     // join the gossip topic by connecting to known peers, if any
     let peer_ids: Vec<NodeId> = peers.iter().map(|p| p.node_id).collect();
 
@@ -213,7 +215,7 @@ async fn main() -> Result<()> {
     repl.run().await?;
 
     // Web interface
-
+    println!("{}",node_ticket);
     if args.web {
         let rocket_secret_key: [u8; 32] = conf.rocket_key().unwrap();
         println!("starting web server ");

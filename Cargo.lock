@@ -2683,6 +2683,7 @@ dependencies = [
  "futures-lite",
  "indicatif",
  "iroh",
+ "iroh-base",
  "iroh-blobs",
  "iroh-docs",
  "iroh-gossip",
