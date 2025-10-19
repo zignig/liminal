@@ -31,8 +31,7 @@ use iroh_docs::{
     store::Query,
 };
 
-use n0_future::{Stream, StreamExt};
-use n0_watcher::Watcher;
+use n0_future::{FuturesUnordered, Stream, StreamExt, task};
 use serde::{Deserialize, Serialize};
 
 // Individual notes
@@ -172,6 +171,12 @@ impl Notes {
         self.0.doc.subscribe().await
     }
 
+    pub async fn run(&self) -> Result<()> {
+        let events = self.doc_subscribe().await?;
+        task::spawn(info_loop(events));
+        Ok(())
+    }
+
     pub async fn create(&self, id: String, text: String) -> Result<()> {
         if text.len() > MAX_TEXT_LEN {
             bail!("text is too long, max size is {MAX_TEXT_LEN}");
@@ -296,7 +301,7 @@ impl Notes {
             Ok(b) => Note::from_bytes(b),
             Err(e) => {
                 id.pop();
-                println!("{:#?} this is probably it {:#?}", &id,e);
+                println!("{:#?} this is probably it {:#?}", &id, e);
                 return Ok(Note::missing_note(id));
             }
         }
@@ -357,4 +362,22 @@ impl Notes {
         Ok(())
     }
     // End direct doc manipulation
+}
+
+async fn info_loop(events: impl Stream<Item = Result<LiveEvent>>) {
+    warn!("Start info loop");
+    tokio::pin!(events);
+    loop {
+        tokio::select! {
+        Some(event) = events.next() => {
+            let event = match event {
+                Ok(event) => event,
+                Err(err) => {
+                    error!("{:#?}",err);
+                    break;
+                },
+            };
+            warn!("{:#?}",event);
+        }}
+    }
 }
