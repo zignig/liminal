@@ -189,8 +189,8 @@ async fn main() -> Result<()> {
 
     // during testing , clean out the docs users
     // with random notes joining , it can get messy.
-    let _e = base_notes.leave().await;
-    let _e = base_notes.share().await;
+    // let _e = base_notes.leave().await;
+    // let _e = base_notes.share().await;
     let _e = base_notes.run().await;
 
     // let val = base_notes.delete_hidden().await;

@@ -367,17 +367,15 @@ impl Notes {
 async fn info_loop(events: impl Stream<Item = Result<LiveEvent>>) {
     warn!("Start info loop");
     tokio::pin!(events);
-    loop {
-        tokio::select! {
-        Some(event) = events.next() => {
-            let event = match event {
-                Ok(event) => event,
-                Err(err) => {
-                    error!("{:#?}",err);
-                    break;
-                },
-            };
-            warn!("{:#?}",event);
-        }}
+    while let Some(event) = events.next().await {
+        let event = match event {
+            Ok(event) => event,
+            Err(err) => {
+                error!("{:#?}", err);
+                break;
+            }
+        };
+        warn!("{:#?}", event);
     }
+    warn!("escape!!");
 }
