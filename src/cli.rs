@@ -1,7 +1,9 @@
 use std::{fmt, str::FromStr};
 
 use clap::Parser;
-use iroh::NodeAddr;
+// use iroh::NodeAddr;
+
+use iroh::EndpointAddr;
 use n0_snafu::ResultExt;
 use n0_snafu::Result;
 use serde::{Deserialize, Serialize};
@@ -40,7 +42,7 @@ pub enum Command {
 // Base ticket join ( just node address for now)
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Ticket {
-    pub peers: Vec<NodeAddr>,
+    pub peers: Vec<EndpointAddr>,
 }
 
 impl Ticket {

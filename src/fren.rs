@@ -113,12 +113,14 @@ mod fren {
             FrenActor::spawn()
         }
 
-        pub fn connect(endpoint: Endpoint, addr: impl Into<iroh::NodeAddr>) -> Result<FrenApi> {
-            let conn = IrohRemoteConnection::new(endpoint, addr.into(), super::FREN_ALPN.to_vec());
+        pub fn connect(endpoint: Endpoint, addr: impl Into<iroh::EndpointId>) -> Result<FrenApi> {
+            let conn = IrohRemoteConnection::new(endpoint);
+            
             Ok(FrenApi {
                 inner: Client::boxed(conn),
             })
         }
+
 
         pub fn expose(&self) -> Result<impl ProtocolHandler> {
             let local = self

@@ -1,7 +1,7 @@
 //! Get assets in blobs by collection path
 //!
 
-use iroh::Watcher;
+use iroh::Endpoint;
 use iroh_blobs::ticket::BlobTicket;
 use iroh_blobs::{BlobFormat, BlobsProtocol};
 use rocket::response::Responder;
@@ -15,7 +15,7 @@ use crate::{
 
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("File Browser", |rocket| async {
-        rocket.mount("/", routes![coll, files, inner_files,asset_file])
+        rocket.mount("/", routes![coll, files, inner_files, asset_file])
     })
 }
 
@@ -55,13 +55,14 @@ pub async fn coll<'r>(
     collection: &str,
     fileset: &State<FileSet>,
     blobs: &State<BlobsProtocol>,
+    endpoint: &State<Endpoint>,
 ) -> impl Responder<'r, 'static> {
     let res = fileset.get(collection.to_string(), &PathBuf::new()).await;
     match res {
         Ok(res) => {
             let mut ticket_opt: Option<String> = None;
             if let Some(hash) = fileset.get_hash(collection.to_string()).await.unwrap() {
-                let addr = blobs.endpoint().node_addr().initialized().await;
+                let addr = endpoint.addr();
                 let ticket = BlobTicket::new(addr, hash, BlobFormat::HashSeq);
                 ticket_opt = Some(ticket.to_string());
             }
@@ -132,7 +133,7 @@ pub async fn asset_file<'r>(
     path: PathBuf,
     fileset: &State<FileSet>,
 ) -> impl Responder<'r, 'static> {
-    if let  Ok(_data) = fileset.get_file(root.to_string(), &path).await{
+    if let Ok(_data) = fileset.get_file(root.to_string(), &path).await {
         return Ok(());
     }
     Err(())

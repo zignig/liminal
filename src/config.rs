@@ -4,8 +4,8 @@
 //! in iroh-blobs. Seemed like a good layout.
 
 use anyhow::{Result, anyhow};
-use iroh::{NodeId, PublicKey, SecretKey};
-use redb::{Database, Table, TableDefinition, TableHandle, WriteTransaction};
+use iroh::{EndpointId, PublicKey, SecretKey};
+use redb::{Database, ReadableDatabase, Table, TableDefinition, WriteTransaction};
 use std::{fs, path::PathBuf};
 
 const TIME_TABLE: TableDefinition<&str, u64> = TableDefinition::new("timings");
@@ -87,7 +87,7 @@ impl Info {
         let read_tx = self.db.begin_read()?;
         let nodes = read_tx.open_table(NODE_TABLE)?;
         for (k, v) in nodes.range::<&'static [u8; 32]>(..)?.flatten() {
-            println!("{:?}, {:?}", NodeId::from_bytes(k.value()), v.value());
+            println!("{:?}, {:?}", EndpointId::from_bytes(k.value()), v.value());
         }
         Ok(())
     }
@@ -100,7 +100,7 @@ impl Info {
         } else {
             println!("Make a new secret key");
             let write_tx = self.db.begin_write()?;
-            let secret = SecretKey::generate(rand::rngs::OsRng);
+            let secret = SecretKey::generate(&mut rand::rng());
             {
                 let mut secrets = write_tx.open_table(SECRET_TABLE)?;
                 secrets.insert(0, &secret.to_bytes())?;
@@ -118,7 +118,7 @@ impl Info {
         } else {
             println!("Create secret cookie key");
             let write_tx = self.db.begin_write()?;
-            let secret = SecretKey::generate(rand::rngs::OsRng);
+            let secret = SecretKey::generate(&mut rand::rng());
             {
                 let mut secrets = write_tx.open_table(SECRET_TABLE)?;
                 secrets.insert(1, &secret.to_bytes())?;
@@ -172,8 +172,7 @@ impl Info {
         Ok(())
     }
 
-    pub fn get_notes_author(&self) -> Result<[u8;32]>{
+    pub fn get_notes_author(&self) -> Result<[u8; 32]> {
         self.get_author_key("notes")
     }
-    
 }

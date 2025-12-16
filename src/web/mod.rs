@@ -3,13 +3,11 @@
 
 use std::str::FromStr;
 
-use crate::notes::Notes;
 use crate::store::FileSet;
-use crate::templates::{
-    AdminPageTemplate, GltfPageTemplate, HomePageTemplate, IconsPageTemplate, NetworkPageTemplate, NodePageTemplate
-};
+use crate::templates::{AdminPageTemplate, GltfPageTemplate, HomePageTemplate, IconsPageTemplate};
 use crate::web::auth::User;
 use chrono::Local;
+use iroh::Endpoint;
 use iroh_blobs::ticket::BlobTicket;
 use iroh_blobs::{BlobsProtocol, HashAndFormat};
 use rocket::State;
@@ -35,8 +33,6 @@ pub(crate) fn stage() -> AdHoc {
                 fixed::dist,
                 fixed::favicon,
                 viewer,
-                network,
-                nodes,
                 auth::login,
                 auth::login_post,
                 show_icons,
@@ -61,15 +57,16 @@ pub async fn admin_page<'r>(_user: User) -> impl Responder<'r, 'static> {
 }
 
 // TODO move into utils and make more checks.
-pub async fn get_collection(encoded: &str, blobs: &BlobsProtocol) -> anyhow::Result<()> {
+pub async fn get_collection(
+    encoded: &str,
+    blobs: &BlobsProtocol,
+    endpoint: &Endpoint,
+) -> anyhow::Result<()> {
     match BlobTicket::from_str(encoded) {
         Ok(ticket) => {
             println!("{:#?}", ticket);
             let (node, hash, hashtype) = ticket.into_parts();
-            let conn = blobs
-                .endpoint()
-                .connect(node, iroh_blobs::protocol::ALPN)
-                .await?;
+            let conn = endpoint.connect(node, iroh_blobs::ALPN).await?;
             let knf = HashAndFormat::new(hash, hashtype);
             let local = blobs.store().remote().local(knf).await?;
             if !local.is_complete() {
@@ -98,37 +95,14 @@ pub struct BlobUpload<'v> {
 pub async fn message<'r>(
     web_message: Form<BlobUpload<'_>>,
     blobs: &State<BlobsProtocol>,
+    endpoint: &State<Endpoint>,
     file_set: &State<FileSet>,
 ) -> &'static str {
     let encoded = web_message.message.trim();
-    let r = get_collection(encoded, blobs).await;
+    let r = get_collection(encoded, blobs, endpoint).await;
     file_set.fill("col").await;
     println!("Trans info {:#?}", r);
     "should be an error"
-}
-
-#[get("/network")]
-pub fn network<'r>(blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> {
-    let remotes = blobs.endpoint().remote_info_iter();
-    let mut nodes: Vec<String> = Vec::new();
-    for i in remotes {
-        nodes.push(i.node_id.fmt_short())
-    }
-    NetworkPageTemplate {
-        nodes: nodes,
-        section: "network".to_string(),
-    }
-}
-
-#[get("/network/<node_id>")]
-pub fn nodes<'r>(node_id: String, blobs: &State<BlobsProtocol>) -> impl Responder<'r, 'static> {
-    let mut remote = blobs.endpoint().remote_info_iter();
-    let info = remote.find(|node| node_id == node.node_id.fmt_short());
-    println!("{:#?}", info);
-    NodePageTemplate {
-        node_id: node_id,
-        section: "network".to_string(),
-    }
 }
 
 #[get("/viewer")]

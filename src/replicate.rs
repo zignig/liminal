@@ -6,11 +6,8 @@ use std::time::Duration;
 use iroh::{PublicKey, SecretKey};
 use iroh_blobs::BlobsProtocol;
 use iroh_gossip::{net::Gossip, proto::TopicId};
-use iroh_smol_kv::{
-    Config,
-    api::{self, Client, Filter, Subscribe, SubscribeResult},
-    util::format_bytes,
-};
+
+use iroh_smol_kv::{Client, Config};
 use n0_future::StreamExt;
 use n0_snafu::{Result, ResultExt};
 use tokio::task;

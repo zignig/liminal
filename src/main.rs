@@ -8,35 +8,33 @@ use std::{
 };
 
 use clap::Parser;
-use iroh::{Endpoint, NodeId, SecretKey};
+use iroh::{Endpoint, EndpointId, RelayMode, SecretKey};
 use iroh_blobs::{ALPN as BLOBS_ALPN, Hash, store::fs::FsStore};
 use iroh_docs::{ALPN as DOCS_ALPN, AuthorId, protocol::Docs};
 use iroh_gossip::{
     net::{GOSSIP_ALPN, Gossip},
     proto::TopicId,
 };
-use iroh_base::ticket::NodeTicket;
-
+use iroh_tickets::endpoint::EndpointTicket;
 use n0_future::StreamExt;
 use n0_snafu::{Result, ResultExt, format_err};
 use n0_watcher::Watcher;
 use std::path::PathBuf;
-use tokio::{signal::ctrl_c, task};
+use tokio::{signal::ctrl_c};
 
 mod cli;
 mod config;
-mod fren;
+// mod fren;
 mod notes;
-mod replicate;
+// mod replicate;
 mod store;
 mod templates;
 mod web;
 
 use cli::Command;
 use cli::Ticket;
-use fren::FrenApi;
-
-use crate::fren::FREN_ALPN;
+// use fren::FrenApi;
+// use crate::fren::FREN_ALPN;
 
 #[macro_use]
 extern crate rocket;
@@ -67,7 +65,7 @@ async fn main() -> Result<()> {
     // --random cli entry will generate a new node id
     // Or use a fixed one from config
     let secret_key = match &args.random {
-        true => SecretKey::generate(rand::rngs::OsRng),
+        true => SecretKey::generate(&mut rand::rng()),
         false => match conf.get_secret_key() {
             Ok(secret) => secret.to_owned(),
             Err(_) => return Err(format_err!("Bad secret")),
@@ -75,31 +73,27 @@ async fn main() -> Result<()> {
     };
 
     // build our magic endpoint
-    let endpoint = Endpoint::builder()
+    let endpoint = iroh::Endpoint::builder()
         .secret_key(secret_key.clone())
-        .discovery_n0()
-        .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, args.bind_port))
+        .relay_mode(RelayMode::Default)
         .bind()
-        .await?;
+        .await
+        .unwrap();
 
+    // this needs to have a timeout 
+    endpoint.online().await;
     // Stash some nodes
-    let _ = conf.add_node(endpoint.node_id());
+    let _ = conf.add_node(endpoint.id());
     let _ = conf.list_nodes();
 
-    println!("> our node id: {}", endpoint.node_id());
-    for i in endpoint.remote_info_iter() {
-        println!("{:?}", i);
-    }
-
     // print a ticket that includes our own node id and endpoint addresses
-    let ticket = {
-        let _ = endpoint.home_relay().initialized().await;
-        let me = endpoint.node_addr().initialized().await;
-        let peers = peers.iter().cloned().chain([me]).collect();
-        Ticket { peers }
-    };
+    // let ticket = {
+    //     let me = endpoint.id();
+    //     let peers = peers.iter().cloned().chain([me]).collect();
+    //     Ticket { peers }
+    // };
 
-    println!("\n\n> ticket to join us: {ticket}");
+    // println!("\n\n> ticket to join us: {ticket}");
 
     // create the gossip protocol
     let gossip = Gossip::builder().spawn(endpoint.clone());
@@ -107,7 +101,7 @@ async fn main() -> Result<()> {
     // BLOBS!
     let path = PathBuf::from("data/blobs");
     let store = FsStore::load(path).await.unwrap();
-    let blobs = iroh_blobs::BlobsProtocol::new(&store, endpoint.clone(), None);
+    let blobs = iroh_blobs::BlobsProtocol::new(&store, None);
 
     // Path browser
     let fileset = store::FileSet::new(blobs.clone());
@@ -133,33 +127,33 @@ async fn main() -> Result<()> {
     }
 
     // FREN !
-    let fren_api = FrenApi::spawn();
+    // let fren_api = FrenApi::spawn();
 
     // setup router
     let router = iroh::protocol::Router::builder(endpoint.clone())
         .accept(GOSSIP_ALPN, gossip.clone())
         .accept(BLOBS_ALPN, blobs.clone())
         .accept(DOCS_ALPN, docs.clone())
-        .accept(FREN_ALPN, fren_api.expose().unwrap())
+        // .accept(FREN_ALPN, fren_api.expose().unwrap())
         .spawn();
 
-    // make sure we are connected for tickets
-    let addr = router.endpoint().node_addr().initialized().await;
-    let node_ticket = NodeTicket::new(addr);
-    // join the gossip topic by connecting to known peers, if any
-    let peer_ids: Vec<NodeId> = peers.iter().map(|p| p.node_id).collect();
+    // // make sure we are connected for tickets
+    // let addr = router.endpoint().node_addr().initialized().await;
+    // let node_ticket = NodeTicket::new(addr);
+    // // join the gossip topic by connecting to known peers, if any
+    // let peer_ids: Vec<NodeId> = peers.iter().map(|p| p.node_id).collect();
 
-    if peers.is_empty() {
-        println!("> waiting for peers to join us...");
-    } else {
-        println!("> trying to connect to {} peers...", peers.len());
-        // add the peer addrs from the ticket to our endpoint's addressbook so that they can be dialed
-        for peer in peers.into_iter() {
-            // Stash the peers in the config
-            let _ = conf.add_node(peer.node_id);
-            endpoint.add_node_addr(peer)?;
-        }
-    };
+    // if peers.is_empty() {
+    //     println!("> waiting for peers to join us...");
+    // } else {
+    //     println!("> trying to connect to {} peers...", peers.len());
+    //     // add the peer addrs from the ticket to our endpoint's addressbook so that they can be dialed
+    //     for peer in peers.into_iter() {
+    //         // Stash the peers in the config
+    //         let _ = conf.add_node(peer.id);
+    //         endpoint.add(peer)?;
+    //     }
+    // };
 
     // Testing notes interface
     // Stores the doc id in the config and makes a new one
@@ -203,20 +197,23 @@ async fn main() -> Result<()> {
     // println!("{:#?}", val);
 
     // Set liminal, hashed as the topic
-    let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
-    let repl = replicate::Replicator::new(
-        gossip.clone(),
-        blobs.clone(),
-        topic,
-        peer_ids,
-        secret_key.clone(),
-    )
-    .await?;
 
-    repl.run().await?;
+    // let peer_ids = vec![];
+    // let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
+    // let repl = replicate::Replicator::new(
+    //     gossip.clone(),
+    //     blobs.clone(),
+    //     topic,
+    //     peer_ids,
+    //     secret_key.clone(),
+    // )
+    // .await?;
+
+    // repl.run().await?;
+    
 
     // Web interface
-    println!("{}",node_ticket);
+    // println!("{}", node_ticket);
     if args.web {
         let rocket_secret_key: [u8; 32] = conf.rocket_key().unwrap();
         println!("starting web server ");
@@ -232,6 +229,7 @@ async fn main() -> Result<()> {
             .manage(base_notes.clone())
             .manage(fileset.clone())
             .manage(blobs.clone())
+            .manage(endpoint.clone())
             .register("/", catchers![web::auth::unauthorized])
             .attach(web::stage())
             .attach(web::assets::stage())
