@@ -53,6 +53,7 @@ irpc-iroh = "0.11.0"
 tracing = "0.1.41"
 pulldown-cmark = "0.13.0"
 iroh-base = "0.95.1"
-iroh-smol-kv = "0.3.1"
+# iroh-smol-kv = "0.3.1"
+iroh-smol-kv = { path = "crates/iroh-smol-kv"}
 iroh-tickets = "0.2.0"
 

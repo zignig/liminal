@@ -198,18 +198,18 @@ async fn main() -> Result<()> {
 
     // Set liminal, hashed as the topic
 
-    // let peer_ids = vec![];
-    // let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
-    // let repl = replicate::Replicator::new(
-    //     gossip.clone(),
-    //     blobs.clone(),
-    //     topic,
-    //     peer_ids,
-    //     secret_key.clone(),
-    // )
-    // .await?;
+    let peer_ids = vec![];
+    let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
+    let repl = replicate::Replicator::new(
+        gossip.clone(),
+        blobs.clone(),
+        topic,
+        peer_ids,
+        secret_key.clone(),
+    )
+    .await?;
 
-    // repl.run().await?;
+    repl.run().await?;
     
 
     // Web interface
