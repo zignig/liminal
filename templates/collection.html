@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% let section = "files" %}
+
+{% block content %}
+<div class="content">
+    <nav class="breadcrumb" aria-label="breadcrumbs">
+        <ul>
+            {% for seg in segments %}
+            <li><a href="/files/{{ prefixes[loop.index0]}}">{{ seg }} </a></li>
+            {% endfor %}
+        </ul>
+    </nav>
+    <table class="table is-striped is-hoverable is-fullwidth">
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td><a href="/files/{{ path }}/{{ item }}">{{ item }}</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+  
+    {% if let Some(ticket) = ticket %}
+    <div class="content ">
+        <p class="wrappy">{{ ticket }}</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

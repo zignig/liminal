@@ -58,7 +58,7 @@ impl Info {
         fs::create_dir_all(name.parent().unwrap())?;
         let db = match Database::create(name) {
             Ok(database) => database,
-            Err(_) => return Err(anyhow!("bad database")),
+            Err(e) => return Err(anyhow!("bad database create, {}",e)),
         };
         let write_tx = db.begin_write()?;
         let _ = Tables::new(&write_tx)?;

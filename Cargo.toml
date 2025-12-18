@@ -54,6 +54,7 @@ tracing = "0.1.41"
 pulldown-cmark = "0.13.0"
 iroh-base = "0.95.1"
 # iroh-smol-kv = "0.3.1"
-iroh-smol-kv = { path = "crates/iroh-smol-kv"}
+# iroh-smol-kv = { path = "crates/iroh-smol-kv"}
+iroh-smol-kv = { git = "https://github.com/Frando/iroh-smol-kv", branch = "iroh-095", version = "0.3.1", default-features = false }   
 iroh-tickets = "0.2.0"
 

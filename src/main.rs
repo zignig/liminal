@@ -26,7 +26,7 @@ mod cli;
 mod config;
 // mod fren;
 mod notes;
-// mod replicate;
+mod replicate;
 mod store;
 mod templates;
 mod web;
@@ -59,7 +59,7 @@ async fn main() -> Result<()> {
     let db_res = config::Info::new(&PathBuf::from("data/config.db"));
     let mut conf = match db_res {
         Ok(conf) => conf,
-        Err(_) => return Err(format_err!("bad database!")),
+        Err(e) => return Err(format_err!("{} bad database!",e)),
     };
 
     // --random cli entry will generate a new node id
@@ -193,7 +193,7 @@ async fn main() -> Result<()> {
     // let val = base_notes.bounce_down().await;
     // println!("{:#?}", val);
 
-    // let val = base_notes.bounce_up("notes-1760782600").await;
+    // let val = base_notes.bounce_up("notes-1759074698").await;
     // println!("{:#?}", val);
 
     // Set liminal, hashed as the topic
@@ -230,6 +230,7 @@ async fn main() -> Result<()> {
             .manage(fileset.clone())
             .manage(blobs.clone())
             .manage(endpoint.clone())
+            .manage(docs.clone())
             .register("/", catchers![web::auth::unauthorized])
             .attach(web::stage())
             .attach(web::assets::stage())
