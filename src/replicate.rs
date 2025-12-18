@@ -10,12 +10,13 @@ use iroh_gossip::{net::Gossip, proto::TopicId};
 use iroh_smol_kv::{Client, Config};
 use n0_future::StreamExt;
 use n0_snafu::{Result, ResultExt};
-use tokio::task;
+use tokio::{select, task};
 
 pub struct Replicator {
     blobs: BlobsProtocol,
     client: Client,
     secret: SecretKey,
+    prefixes: Vec<String>,
 }
 
 impl Replicator {
@@ -25,6 +26,7 @@ impl Replicator {
         topic_id: TopicId,
         bootstrap: Vec<PublicKey>,
         secret: SecretKey,
+        prefixes: Vec<String>,
     ) -> Result<Self> {
         let topic = gossip.subscribe(topic_id, bootstrap).await.e()?;
         let client = Client::local(topic, Config::default());
@@ -32,6 +34,7 @@ impl Replicator {
             blobs,
             client,
             secret,
+            prefixes,
         })
     }
 
@@ -40,13 +43,19 @@ impl Replicator {
         let client = self.client.clone();
         let secret = self.secret.clone();
         let blobs = self.blobs.clone();
-        task::spawn(test_runner(client, secret, blobs));
+        let prefixes = self.prefixes.clone();
+        task::spawn(test_runner(client, secret, blobs, prefixes));
         Ok(())
     }
 }
 
 // Add to the kv once an hour, do it first...
-pub async fn test_runner(client: Client, secret: SecretKey, blobs: BlobsProtocol) -> Result<()> {
+pub async fn test_runner(
+    client: Client,
+    secret: SecretKey,
+    blobs: BlobsProtocol,
+    prefixes: Vec<String>,
+) -> Result<()> {
     let ws = client.write(secret);
     let mut op_id = 0;
     let mut next_op_id = || {
@@ -54,17 +63,26 @@ pub async fn test_runner(client: Client, secret: SecretKey, blobs: BlobsProtocol
         op_id += 1;
         id
     };
+
+    let id = next_op_id();
+    println!("update count {:?}", id);
+    let mut ticker = tokio::time::interval(Duration::from_secs(3600));
     loop {
-        let id = next_op_id();
-        println!("update count {:?}", id);
-        // println!("boop");
-        let mut tag_scan = blobs.store().tags().list_prefix("col").await.unwrap();
-        // let mut tag_scan = blobs.store().tags().list().await.unwrap();
-        while let Some(event) = tag_scan.next().await {
-            let tag = event.unwrap();
-            let tag_name = str::from_utf8(&tag.name.0).unwrap().to_owned();
-            let _ = ws.put(tag_name, tag.hash.to_hex()).await;
-        }
-        tokio::time::sleep(Duration::from_secs(3600)).await;
+        tokio::select! {
+            _ = ticker.tick() => {
+                for pre in prefixes.clone().into_iter() {
+                    println!("scan prefix {pre}");
+                    let mut tag_scan = blobs.store().tags().list_prefix(pre).await.unwrap();
+                    // let mut tag_scan = blobs.store().tags().list().await.unwrap();
+                    while let Some(event) = tag_scan.next().await {
+                        let tag = event.unwrap();
+                        let tag_name = str::from_utf8(&tag.name.0).unwrap().to_owned();
+                        let _ = ws.put(tag_name, tag.hash.to_hex()).await;
+                    }
+                }
+            }
+
+        };
+        // tokio::time::sleep(Duration::from_secs(3600)).await;
     }
 }

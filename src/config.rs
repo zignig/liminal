@@ -6,7 +6,7 @@
 use anyhow::{Result, anyhow};
 use iroh::{EndpointId, PublicKey, SecretKey};
 use redb::{Database, ReadableDatabase, Table, TableDefinition, WriteTransaction};
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, str::FromStr};
 
 const TIME_TABLE: TableDefinition<&str, u64> = TableDefinition::new("timings");
 const NODE_TABLE: TableDefinition<&[u8; 32], &str> = TableDefinition::new("nodes");
@@ -58,7 +58,7 @@ impl Info {
         fs::create_dir_all(name.parent().unwrap())?;
         let db = match Database::create(name) {
             Ok(database) => database,
-            Err(e) => return Err(anyhow!("bad database create, {}",e)),
+            Err(e) => return Err(anyhow!("bad database create, {}", e)),
         };
         let write_tx = db.begin_write()?;
         let _ = Tables::new(&write_tx)?;
@@ -149,6 +149,10 @@ impl Info {
     }
 
     pub fn get_notes_id(&self) -> Result<[u8; 32]> {
+        // let key = iroh_docs::NamespacePublicKey::from_str(
+        //     "7c348d28ea5cbe4001bdb21fe9446b6f936b5424a3c1c9712fdda706d1c40181",
+        // )?;
+        // let _ = self.set_docs_key("notes", *key.as_bytes());
         self.get_docs_key("notes")
     }
 

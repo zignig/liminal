@@ -33,6 +33,7 @@ use iroh_docs::{
 
 use n0_future::{FuturesUnordered, Stream, StreamExt, task};
 use serde::{Deserialize, Serialize};
+use tracing::{error, warn};
 
 // Individual notes
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -195,6 +195,7 @@ impl FileSet {
     pub fn list_roots(&self) -> Vec<String> {
         let mut items: Vec<String> = self.0.roots.iter().map(|k| k.key().to_string()).collect();
         items.sort();
+        items.reverse();
         items
     }
 }

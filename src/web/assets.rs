@@ -5,6 +5,7 @@ use iroh::Endpoint;
 use iroh_blobs::ticket::BlobTicket;
 use iroh_blobs::{BlobFormat, BlobsProtocol};
 use rocket::response::Responder;
+use rocket::routes;
 use rocket::{State, fairing::AdHoc};
 use std::path::PathBuf;
 

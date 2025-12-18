@@ -20,7 +20,7 @@ use n0_future::StreamExt;
 use n0_snafu::{Result, ResultExt, format_err};
 use n0_watcher::Watcher;
 use std::path::PathBuf;
-use tokio::{signal::ctrl_c};
+use tokio::signal::ctrl_c;
 
 mod cli;
 mod config;
@@ -59,7 +59,7 @@ async fn main() -> Result<()> {
     let db_res = config::Info::new(&PathBuf::from("data/config.db"));
     let mut conf = match db_res {
         Ok(conf) => conf,
-        Err(e) => return Err(format_err!("{} bad database!",e)),
+        Err(e) => return Err(format_err!("{} bad database!", e)),
     };
 
     // --random cli entry will generate a new node id
@@ -80,8 +80,11 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
 
-    // this needs to have a timeout 
+    // this needs to have a timeout
     endpoint.online().await;
+    let node_ticket = iroh_tickets::endpoint::EndpointTicket::new(endpoint.addr());
+    println!("ticket \n\n {:?}", node_ticket.to_string());
+
     // Stash some nodes
     let _ = conf.add_node(endpoint.id());
     let _ = conf.list_nodes();
@@ -108,7 +111,7 @@ async fn main() -> Result<()> {
     // TODO make this prettier.
     // Get the file roots
     fileset.fill("col").await;
-    fileset.fill("notes").await;
+    // fileset.fill("notes").await;
 
     // clear out some old tags ( carefull )
     //fileset.del_tags("col-17").await.unwrap();
@@ -190,8 +193,8 @@ async fn main() -> Result<()> {
     // let val = base_notes.delete_hidden().await;
     // println!("{:#?}", val);
 
-    // let val = base_notes.bounce_down().await;
-    // println!("{:#?}", val);
+    let val = base_notes.bounce_down().await;
+    println!("{:#?}", val);
 
     // let val = base_notes.bounce_up("notes-1759074698").await;
     // println!("{:#?}", val);
@@ -206,12 +209,16 @@ async fn main() -> Result<()> {
         topic,
         peer_ids,
         secret_key.clone(),
+        vec!["col".to_string(), "notes".to_string()],
     )
     .await?;
-
     repl.run().await?;
-    
 
+    let mut lit = docs.list().await.unwrap();
+    while let Some(d) = lit.next().await {
+        let d = d.unwrap();
+        println!("{:#?}", d);
+    }
     // Web interface
     // println!("{}", node_ticket);
     if args.web {
