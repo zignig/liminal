@@ -8,7 +8,13 @@ use crate::notes::Note;
 #[derive(Template, WebTemplate)]
 #[template(path = "index.html")]
 pub struct HomePageTemplate {
-    pub section: String,
+    pub section: String
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "replica.html")]
+pub struct ReplicaTemplate {
+    pub section: String
 }
 
 #[derive(Template, WebTemplate)]

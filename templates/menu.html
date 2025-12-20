@@ -1,16 +1,13 @@
+{% let menu_items = ["notes","files","admin","replica"] %}
+{% let menu_icons = ["fa-list","fa-file","fa-tools","fa-server"] %}
 <div class="tabs is-boxed">
     <ul>
-        <li {%if section=="notes" %}class="is-active" {% endif %}>
-            <a href="/notes"><span class="icon "><i class="fas fa-list"
-                        aria-hidden="true"></i></span><span>Notes</span></a>
+        {% for item in menu_items %}
+        <li {%if section.as_str()==*item %} class="is-active" {% endif %}>
+            <a href="/{{ item }}"><span class="icon "><i class="fas {{ menu_icons[loop.index0] }}"
+                        aria-hidden="true"></i></span>
+                <span>{{ item | capitalize }}</span></a>
         </li>
-        <li {%if section=="files" %}class="is-active" {% endif %}>
-            <a href="/files"><span class="icon "><i class="fas fa-file"
-                        aria-hidden="true"></i></span><span>Files</span></a>
-        </li>
-        <li {%if section=="admin" %}class="is-active" {% endif %}>
-            <a href="/admin"> <span class="icon"><i class="fas fa-tools" aria-hidden="true"></i></span>
-                <span>Admin</span></a>
-        </li>
+        {% endfor %}
     </ul>
 </div>

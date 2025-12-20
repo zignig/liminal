@@ -21,6 +21,7 @@ pub mod auth;
 pub mod fixed;
 pub mod notes;
 pub mod services;
+pub mod replica;
 
 // Run these things
 pub(crate) fn stage() -> AdHoc {
@@ -43,9 +44,9 @@ pub(crate) fn stage() -> AdHoc {
 }
 
 #[get("/")]
-pub async fn index<'r>(user: User) -> impl Responder<'r, 'static> {
+pub async fn index<'r>(_user: User) -> impl Responder<'r, 'static> {
     HomePageTemplate {
-        section: "".to_string(),
+        section: "".to_string()
     }
 }
 

@@ -243,6 +243,7 @@ async fn main() -> Result<()> {
             .attach(web::assets::stage())
             .attach(web::services::stage())
             .attach(web::notes::stage())
+            .attach(web::replica::stage())
             .launch()
             .await;
     } else {
