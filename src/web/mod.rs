@@ -20,8 +20,9 @@ pub mod assets;
 pub mod auth;
 pub mod fixed;
 pub mod notes;
-pub mod services;
 pub mod replica;
+pub mod services;
+pub mod search;
 
 // Run these things
 pub(crate) fn stage() -> AdHoc {
@@ -37,7 +38,11 @@ pub(crate) fn stage() -> AdHoc {
                 auth::login,
                 auth::login_post,
                 show_icons,
-                admin_page
+                admin_page,
+                click,
+                search::base_search,
+                search::searcher,
+                search::search_page,
             ],
         )
     })
@@ -46,9 +51,15 @@ pub(crate) fn stage() -> AdHoc {
 #[get("/")]
 pub async fn index<'r>(_user: User) -> impl Responder<'r, 'static> {
     HomePageTemplate {
-        section: "".to_string()
+        section: "".to_string(),
     }
 }
+
+#[get("/button/click")]
+pub async fn click<'r>(_user: User) -> impl Responder<'r, 'static> {
+    "FNORD"
+}
+
 
 #[get("/admin")]
 pub async fn admin_page<'r>(_user: User) -> impl Responder<'r, 'static> {
@@ -102,8 +113,7 @@ pub async fn message<'r>(
     let encoded = web_message.message.trim();
     let r = get_collection(encoded, blobs, endpoint).await;
     file_set.fill("col").await;
-    println!("Trans info {:#?}", r);
-    "should be an error"
+    "blob status"
 }
 
 #[get("/viewer")]

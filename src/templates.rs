@@ -28,6 +28,18 @@ pub struct FilePageTemplate {
     pub ticket: Option<String>
 }
 
+#[derive(Template, WebTemplate)]
+#[template(path = "collection.html")]
+pub struct CollectionPageTemplate {
+    pub items: Vec<String>,
+    pub path: String,
+    pub segments: Vec<String>,
+    pub prefixes: Vec<String>,
+    pub section: String,
+    pub ticket: Option<String>
+}
+
+
 // Notes interface
 #[derive(Template, WebTemplate)]
 #[template(path = "notes/notes.html")]
@@ -104,4 +116,12 @@ pub struct IconsPageTemplate {
 #[template(path = "admin.html")]
 pub struct AdminPageTemplate {
     pub section: String,
+}
+
+
+// icon listing
+#[derive(Template, WebTemplate)]
+#[template(path = "search_fragment.html")]
+pub struct SearchFragmentTemplate {
+    pub items: Vec<String>
 }

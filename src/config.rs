@@ -6,7 +6,7 @@
 use anyhow::{Result, anyhow};
 use iroh::{EndpointId, PublicKey, SecretKey};
 use redb::{Database, ReadableDatabase, Table, TableDefinition, WriteTransaction};
-use std::{fs, path::PathBuf, str::FromStr};
+use std::{fs, path::PathBuf};
 
 const TIME_TABLE: TableDefinition<&str, u64> = TableDefinition::new("timings");
 const NODE_TABLE: TableDefinition<&[u8; 32], &str> = TableDefinition::new("nodes");

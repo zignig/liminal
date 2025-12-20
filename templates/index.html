@@ -1,30 +1,42 @@
 {% extends "base.html" %}
 {% let section = "" %}
 
+{% block head %}
+<link rel="stylesheet" type="text/css" href="/static/css/unpoly.min.css" />
+<script src="/static/js/unpoly.min.js"></script>
+
+{% endblock %}
 {% block content %}
 <p class="control has-icons-left">
-    <input class="input" type="text" placeholder="Search" />
-    <span class="icon is-left">
-        <i class="fas fa-search" aria-hidden="true"></i>
-    </span>
+<form method="GET" action="/search" up-autosubmit up-target=".results" id="query">
+    <div class="field has-addons">
+        <div class="control">
+            <input class="input" name="query" type="search" placeholder="Search" autocomplete="off" />
+        </div>
+        <div class="control">
+            <button class="button" type="submit" id="send" up-submit="false">Search</button>
+        </div>
+    </div>
+</form>
+<br>
+<div class="results">STUFF</div>
 </p>
 <br>
-<form id="blob-upload">
-    <h1 class="Title">Incoming Blobs</h1>
-    <hr>
+<form id="blob-upload" method="POST" action="/blob">
+    <h1 class="Title">In`
     Incoming blobs for processing should be listed here with actions.
     <hr>
     <div class="field">
         <label class="label">Fetch Blob</label>
         <div class="control">
-            <textarea name="blobtext" id="blobtext" class="textarea"></textarea>
+            <textarea name="message" id="message" class="textarea"></textarea>
         </div>
-    </div>
+    </div>  
     <div class="field">
         <div class="control">
             <button class="button" type="submit" id="send">Send</button>
         </div>
     </div>
 </form>
-<script src="/static/js/fetch.js"></script>
+
 {% endblock %}

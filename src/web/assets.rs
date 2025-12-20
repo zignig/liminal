@@ -8,12 +8,7 @@ use rocket::response::Responder;
 use rocket::routes;
 use rocket::{State, fairing::AdHoc};
 use std::path::PathBuf;
-
-use crate::{
-    store::{FileSet, RenderType},
-    templates::FilePageTemplate,
-};
-
+use crate::{store::{FileSet, RenderType}, templates::{CollectionPageTemplate, FilePageTemplate}};
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("File Browser", |rocket| async {
         rocket.mount("/", routes![coll, files, inner_files, asset_file])
@@ -75,7 +70,7 @@ pub async fn coll<'r>(
                         let mut path = PathBuf::new();
                         path.push(&collection);
                         let (pref, seg) = split_path(&path);
-                        return Ok(FilePageTemplate {
+                        return Ok(CollectionPageTemplate {
                             items: items,
                             path: path.display().to_string(),
                             segments: seg,

@@ -1,3 +1,4 @@
+// frontpage conversion to unpoly
 
 // Set up the form handler.
 let blobForm = document.getElementById('blob-upload');

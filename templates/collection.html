@@ -19,7 +19,7 @@
             {% endfor %}
         </tbody>
     </table>
-  
+
     {% if let Some(ticket) = ticket %}
     <div class="content ">
         <p class="wrappy">{{ ticket }}</p>
@@ -27,4 +27,11 @@
     {% endif %}
 
 </div>
+{% endblock %}
+
+{% block actions %}
+<li>
+    <a href="/collection/ingest">Ingest</a>
+    <a href="/collection/archive">Archive</a>
+</li>
 {% endblock %}

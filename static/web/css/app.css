@@ -26,3 +26,7 @@ span.icon-name {
 .wrappy {
     overflow-wrap: anywhere;
 }
+
+.results {
+    padding: 0.5;
+}
