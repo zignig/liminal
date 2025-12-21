@@ -19,24 +19,23 @@
     </div>
 </form>
 <br>
-<div class="results">STUFF</div>
+<div class="results"></div>
+
 </p>
+
 <br>
-<form id="blob-upload" method="POST" action="/blob">
-    <h1 class="Title">In`
-    Incoming blobs for processing should be listed here with actions.
-    <hr>
+<form id="ticket-upload" method="POST" action="/ticket" up-target=".ticket_info">
     <div class="field">
-        <label class="label">Fetch Blob</label>
+        <label class="label">Send Ticket</label>
         <div class="control">
-            <textarea name="message" id="message" class="textarea"></textarea>
+            <textarea name="ticket" id="ticket" class="textarea"></textarea>
         </div>
-    </div>  
+    </div>
     <div class="field">
         <div class="control">
             <button class="button" type="submit" id="send">Send</button>
         </div>
     </div>
 </form>
-
+<div class="ticket_info">INFO</div>
 {% endblock %}

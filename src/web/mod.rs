@@ -21,8 +21,8 @@ pub mod auth;
 pub mod fixed;
 pub mod notes;
 pub mod replica;
-pub mod services;
 pub mod search;
+pub mod services;
 
 // Run these things
 pub(crate) fn stage() -> AdHoc {
@@ -31,7 +31,7 @@ pub(crate) fn stage() -> AdHoc {
             "/",
             routes![
                 index,
-                message,
+                ticket,
                 fixed::dist,
                 fixed::favicon,
                 viewer,
@@ -39,7 +39,6 @@ pub(crate) fn stage() -> AdHoc {
                 auth::login_post,
                 show_icons,
                 admin_page,
-                click,
                 search::base_search,
                 search::searcher,
                 search::search_page,
@@ -54,12 +53,6 @@ pub async fn index<'r>(_user: User) -> impl Responder<'r, 'static> {
         section: "".to_string(),
     }
 }
-
-#[get("/button/click")]
-pub async fn click<'r>(_user: User) -> impl Responder<'r, 'static> {
-    "FNORD"
-}
-
 
 #[get("/admin")]
 pub async fn admin_page<'r>(_user: User) -> impl Responder<'r, 'static> {
@@ -100,18 +93,19 @@ pub async fn get_collection(
 
 #[derive(FromForm)]
 pub struct BlobUpload<'v> {
-    message: &'v str,
+    ticket: &'v str,
 }
 
-#[post("/blob", data = "<web_message>")]
-pub async fn message<'r>(
+#[post("/ticket", data = "<web_message>")]
+pub async fn ticket<'r>(
     web_message: Form<BlobUpload<'_>>,
     blobs: &State<BlobsProtocol>,
     endpoint: &State<Endpoint>,
     file_set: &State<FileSet>,
 ) -> &'static str {
-    let encoded = web_message.message.trim();
+    let encoded = web_message.ticket.trim();
     let r = get_collection(encoded, blobs, endpoint).await;
+    warn!("{:#?}",r);
     file_set.fill("col").await;
     "blob status"
 }

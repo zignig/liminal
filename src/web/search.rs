@@ -1,3 +1,5 @@
+//! search functions
+
 use rocket::{
     Request,
     http::Status,
@@ -11,14 +13,14 @@ use crate::templates::{HomePageTemplate, SearchFragmentTemplate};
 pub async fn searcher<'r>(query: String, up: UpTarget<'_>) -> impl Responder<'r, 'static> {
     println!("{} --  {:?} ", query, up.0);
     SearchFragmentTemplate {
-        items: vec![query, "fnord".to_string(), "three".to_string()],
+        items: vec![query],
     }
 }
 
 #[get("/search", rank = 2)]
 pub async fn base_search<'r>() -> impl Responder<'r, 'static> {
     HomePageTemplate {
-        section: "".to_string(),
+        section: "search".to_string(),
     }
 }
 
@@ -26,9 +28,10 @@ pub async fn base_search<'r>() -> impl Responder<'r, 'static> {
 pub async fn search_page<'r>(query: String) -> impl Responder<'r, 'static> {
     println!("{} - ", query);
     HomePageTemplate {
-        section: "".to_string(),
+        section: "search".to_string(),
     }
 }
+
 
 #[derive(Debug)]
 pub struct UpTarget<'r>(&'r str);
@@ -40,7 +43,7 @@ impl<'r> FromRequest<'r> for UpTarget<'r> {
         // println!("{:#?}", req.headers());
         match req.headers().get_one("X-Up-Target") {
             Some(val) => Outcome::Success(UpTarget(val)),
-            None => Outcome::Forward(Status::Accepted), // None => Outcome::Error((Status::BadRequest, ())),
+            None => Outcome::Forward(Status::Accepted),
         }
     }
 }

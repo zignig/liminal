@@ -90,6 +90,8 @@ pub struct NodePageTemplate {
     pub node_id: String
 }
 
+
+// 3d viewer 
 #[derive(Template, WebTemplate)]
 #[template(path = "gltfview.html")]
 pub struct GltfPageTemplate {
@@ -97,6 +99,7 @@ pub struct GltfPageTemplate {
     pub section: String,
 }
 
+// login page
 #[derive(Template, WebTemplate)]
 #[template(path = "login.html")]
 pub struct LoginPageTemplate {
@@ -119,7 +122,7 @@ pub struct AdminPageTemplate {
 }
 
 
-// icon listing
+// Unpoly aware search function
 #[derive(Template, WebTemplate)]
 #[template(path = "search_fragment.html")]
 pub struct SearchFragmentTemplate {

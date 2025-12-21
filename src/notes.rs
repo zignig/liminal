@@ -31,7 +31,7 @@ use iroh_docs::{
     store::Query,
 };
 
-use n0_future::{FuturesUnordered, Stream, StreamExt, task};
+use n0_future::{Stream, StreamExt, task};
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 
