@@ -111,6 +111,7 @@ async fn main() -> Result<()> {
     // TODO make this prettier.
     // Get the file roots
     fileset.fill("col").await;
+    fileset.fill("archive").await;
     // fileset.fill("notes").await;
 
     // clear out some old tags ( carefull )

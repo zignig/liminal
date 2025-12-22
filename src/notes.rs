@@ -157,12 +157,12 @@ impl Notes {
     pub fn ticket(&self) -> String {
         self.0.ticket.to_string()
     }
-
+    #[allow(dead_code)]
     pub async fn leave(&self) -> Result<()> {
         self.0.doc.leave().await?;
         Ok(())
     }
-
+    #[allow(dead_code)]
     pub async fn share(&self) -> Result<()> {
         self.0.doc.start_sync(vec![]).await?;
         Ok(())
@@ -309,6 +309,7 @@ impl Notes {
     }
 
     // Save out the docs as date stamped .md files
+    #[allow(dead_code)]
     pub async fn bounce_down(&self) -> Result<()> {
         let entries = self.0.doc.get_many(Query::single_latest_per_key()).await?;
         let mut notes = Vec::new();
@@ -339,7 +340,7 @@ impl Notes {
         // println!("notes bounce down {:?}", col_hash);
         Ok(())
     }
-
+    #[allow(dead_code)]
     pub async fn bounce_up(&self, id: &str) -> Result<()> {
         let tag = match self.0.blobs.tags().get(id).await? {
             Some(tag) => tag,

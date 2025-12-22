@@ -1,6 +1,11 @@
 //! Get assets in blobs by collection path
 //!
 
+use crate::{
+    store::{FileSet, RenderType},
+    templates::{CollectionPageTemplate, FilePageTemplate},
+};
+use chrono::Local;
 use iroh::Endpoint;
 use iroh_blobs::ticket::BlobTicket;
 use iroh_blobs::{BlobFormat, BlobsProtocol};
@@ -8,10 +13,13 @@ use rocket::response::Responder;
 use rocket::routes;
 use rocket::{State, fairing::AdHoc};
 use std::path::PathBuf;
-use crate::{store::{FileSet, RenderType}, templates::{CollectionPageTemplate, FilePageTemplate}};
+
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("File Browser", |rocket| async {
-        rocket.mount("/", routes![coll, files, inner_files, asset_file])
+        rocket.mount(
+            "/",
+            routes![ingest, archive, coll, files, inner_files, asset_file],
+        )
     })
 }
 
@@ -44,6 +52,25 @@ pub async fn files<'r>(fileset: &State<FileSet>) -> impl Responder<'r, 'static> 
         section: "files".to_string(),
         ticket: None,
     }
+}
+
+#[get("/collection/ingest/<collection>")]
+pub async fn ingest<'r>(collection: &str, fileset: &State<FileSet>) -> impl Responder<'r, 'static> {
+}
+
+#[get("/collection/archive/<collection>")]
+pub async fn archive<'r>(
+    collection: &str,
+    fileset: &State<FileSet>,
+    blobs: &State<BlobsProtocol>,
+) -> impl Responder<'r, 'static> {
+    if let Some(hash) = fileset.get_hash(collection.to_string()).await.unwrap() {
+        let dt = Local::now().to_rfc3339().to_owned();
+        blobs.store().tags().set(format!("archive-{}", dt), hash).await.unwrap();
+    }
+
+    let v = fileset.del_tags(collection).await;
+    fileset.fill("col").await;
 }
 
 #[get("/files/<collection>")]

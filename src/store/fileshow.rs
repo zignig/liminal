@@ -51,6 +51,8 @@ impl FileSet {
 
     // Searches tags and fills the default dictionary.
     pub async fn fill(&self,prefix: &str) {
+        // TODO fix this .
+        self.0.roots.clear();
         let mut tag_scan = self
             .0
             .blobs
