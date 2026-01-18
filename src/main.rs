@@ -111,7 +111,7 @@ async fn main() -> Result<()> {
     // TODO make this prettier.
     // Get the file roots
     fileset.fill("col").await;
-    fileset.fill("archive").await;
+    // fileset.fill("archive").await;
     // fileset.fill("notes").await;
 
     // clear out some old tags ( carefull )
@@ -210,7 +210,7 @@ async fn main() -> Result<()> {
         topic,
         peer_ids,
         secret_key.clone(),
-        vec!["col".to_string(), "notes".to_string()],
+        vec!["col".to_string(), "notes".to_string(),"archive".to_string()],
     )
     .await?;
     repl.run().await?;

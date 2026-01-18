@@ -55,7 +55,8 @@ pub async fn index<'r>(_user: User) -> impl Responder<'r, 'static> {
 }
 
 #[get("/admin")]
-pub async fn admin_page<'r>(_user: User) -> impl Responder<'r, 'static> {
+pub async fn admin_page<'r>(user: User) -> impl Responder<'r, 'static> {
+    info!("{:?}",user.id);
     AdminPageTemplate {
         section: "admin".to_string(),
     }

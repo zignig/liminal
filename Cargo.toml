@@ -6,8 +6,8 @@ edition = "2024"
 [dependencies]
 
 anyhow = "1.0.98"
-askama = "0.14.0"
-askama_web = { version = "0.14.4", features = ["rocket-0.5"] }
+askama = "0.15.1"
+askama_web = { version = "0.15.0", features = ["rocket-0.5"] }
 bytes = { version = "1.10.1", features = ["serde"] }
 chrono = "0.4.41"
 clap = { version = "4.5.40", features = ["derive"] }
@@ -57,6 +57,7 @@ iroh-base = "0.95.1"
 # iroh-smol-kv = { path = "crates/iroh-smol-kv"}
 iroh-smol-kv = { git = "https://github.com/Frando/iroh-smol-kv", branch = "iroh-095", version = "0.3.1", default-features = false }   
 iroh-tickets = "0.2.0"
+derive_more = { version = "2.1.1", features = ["display"] }
 
 # keeping some other tools in this folder
 [workspace]

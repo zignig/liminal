@@ -28,13 +28,14 @@ pub async fn login_post<'r>(
     login_data: Form<LoginForm<'_>>,
     cookies: &CookieJar<'_>,
 ) -> impl Responder<'r, 'static> {
-    println!("{:#?}", &login_data);
+    println!("{:#?}", &login_data.user);
+    let _ = &login_data.pass;
     cookies.add_private(("user_id", "overlord"));
     Redirect::to(uri!(crate::web::index()))
 }
 
 pub struct User {
-    id: u64,
+    pub id: u64,
 }
 
 // TODO fix

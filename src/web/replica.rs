@@ -1,6 +1,5 @@
 use rocket::fairing::AdHoc;
 use crate::{
-    store::{FileSet, RenderType},
     templates::ReplicaTemplate, web::auth::User,
 };
 use rocket::response::Responder;

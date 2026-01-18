@@ -54,8 +54,8 @@ pub async fn files<'r>(fileset: &State<FileSet>) -> impl Responder<'r, 'static> 
     }
 }
 
-#[get("/collection/ingest/<collection>")]
-pub async fn ingest<'r>(collection: &str, fileset: &State<FileSet>) -> impl Responder<'r, 'static> {
+#[get("/collection/ingest/<_collection>")]
+pub async fn ingest<'r>(_collection: &str, _fileset: &State<FileSet>) -> impl Responder<'r, 'static> {
 }
 
 #[get("/collection/archive/<collection>")]
@@ -69,7 +69,7 @@ pub async fn archive<'r>(
         blobs.store().tags().set(format!("archive-{}", dt), hash).await.unwrap();
     }
 
-    let v = fileset.del_tags(collection).await;
+    let _ = fileset.del_tags(collection).await;
     fileset.fill("col").await;
 }
 
@@ -77,7 +77,6 @@ pub async fn archive<'r>(
 pub async fn coll<'r>(
     collection: &str,
     fileset: &State<FileSet>,
-    blobs: &State<BlobsProtocol>,
     endpoint: &State<Endpoint>,
 ) -> impl Responder<'r, 'static> {
     let res = fileset.get(collection.to_string(), &PathBuf::new()).await;

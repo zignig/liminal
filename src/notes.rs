@@ -45,8 +45,8 @@ pub struct Note {
     pub is_delete: bool,
 }
 
-const MAX_NOTE_SIZE: usize = 2 * 1024;
-const MAX_TEXT_LEN: usize = 2 * 1000;
+const MAX_NOTE_SIZE: usize = 16 * 1024;
+const MAX_TEXT_LEN: usize = 16 * 1000;
 
 impl Note {
     fn from_bytes(bytes: Bytes) -> anyhow::Result<Self> {
@@ -157,11 +157,13 @@ impl Notes {
     pub fn ticket(&self) -> String {
         self.0.ticket.to_string()
     }
+
     #[allow(dead_code)]
     pub async fn leave(&self) -> Result<()> {
         self.0.doc.leave().await?;
         Ok(())
     }
+
     #[allow(dead_code)]
     pub async fn share(&self) -> Result<()> {
         self.0.doc.start_sync(vec![]).await?;
@@ -253,6 +255,7 @@ impl Notes {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn delete_hidden(&self) -> Result<()> {
         let entries = self.0.doc.get_many(Query::single_latest_per_key()).await?;
         tokio::pin!(entries);

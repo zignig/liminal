@@ -76,19 +76,19 @@ pub struct NoteEditTemplate {
 }
 // End notes interface
 
-#[derive(Template, WebTemplate)]
-#[template(path = "network.html")]
-pub struct NetworkPageTemplate {
-    pub nodes: Vec<String>,
-    pub section: String,
-}
+// #[derive(Template, WebTemplate)]
+// #[template(path = "network.html")]
+// pub struct NetworkPageTemplate {
+//     pub nodes: Vec<String>,
+//     pub section: String,
+// }
 
-#[derive(Template, WebTemplate)]
-#[template(path = "node.html")]
-pub struct NodePageTemplate {
-    pub section: String,
-    pub node_id: String
-}
+// #[derive(Template, WebTemplate)]
+// #[template(path = "node.html")]
+// pub struct NodePageTemplate {
+//     pub section: String,
+//     pub node_id: String
+// }
 
 
 // 3d viewer 
