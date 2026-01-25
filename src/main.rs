@@ -30,6 +30,7 @@ mod replicate;
 mod store;
 mod templates;
 mod web;
+mod id_store;
 
 use cli::Command;
 use cli::Ticket;
@@ -72,6 +73,8 @@ async fn main() -> Result<()> {
         },
     };
 
+
+
     // build our magic endpoint
     let endpoint = iroh::Endpoint::builder()
         .secret_key(secret_key.clone())
@@ -82,21 +85,21 @@ async fn main() -> Result<()> {
 
     // this needs to have a timeout
     endpoint.online().await;
+
+    // Create the ID manager
+    let id_manager = id_store::IdentityApi::spawn("data/id.rdb");
+    let id_client = id_manager.client();
+    id_client.new_fren(endpoint.id()).await;
+    let  node_list = id_client.list().await.unwrap();
+    println!("{:#?}",node_list);
+
+
     let node_ticket = iroh_tickets::endpoint::EndpointTicket::new(endpoint.addr());
     println!("ticket \n\n {:?}", node_ticket.to_string());
 
     // Stash some nodes
     let _ = conf.add_node(endpoint.id());
     let _ = conf.list_nodes();
-
-    // print a ticket that includes our own node id and endpoint addresses
-    // let ticket = {
-    //     let me = endpoint.id();
-    //     let peers = peers.iter().cloned().chain([me]).collect();
-    //     Ticket { peers }
-    // };
-
-    // println!("\n\n> ticket to join us: {ticket}");
 
     // create the gossip protocol
     let gossip = Gossip::builder().spawn(endpoint.clone());
@@ -105,7 +108,8 @@ async fn main() -> Result<()> {
     let path = PathBuf::from("data/blobs");
     let store = FsStore::load(path).await.unwrap();
     let blobs = iroh_blobs::BlobsProtocol::new(&store, None);
-
+    
+    
     // Path browser
     let fileset = store::FileSet::new(blobs.clone());
     // TODO make this prettier.

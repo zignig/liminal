@@ -58,6 +58,7 @@ iroh-base = "0.95.1"
 iroh-smol-kv = { git = "https://github.com/Frando/iroh-smol-kv", branch = "iroh-095", version = "0.3.1", default-features = false }   
 iroh-tickets = "0.2.0"
 derive_more = { version = "2.1.1", features = ["display"] }
+moka = { version = "0.12.12", features = ["future"] }
 
 # keeping some other tools in this folder
 [workspace]
