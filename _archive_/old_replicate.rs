@@ -119,7 +119,7 @@ pub async fn subscribe_loop(mut receiver: GossipReceiver) -> Result<()> {
                 Message::Whohas { key } => println!("whohas"),
                 Message::IHave { key } => println!("ihave"),
                 Message::Message { text } => println!("message"),
-                Message::Upkey { key } => println!("Upkey {:?}", key),
+                Message::Upkey { key } => println!("Upkey {:?}", key),  
                 Message::Document { key } => println!("document"),
             }
         }

@@ -6,7 +6,6 @@ use iroh::EndpointId;
 use irpc::{Client, WithChannels, channel::oneshot, rpc_requests};
 use postcard::{from_bytes, to_stdvec};
 use redb::{Database, ReadableDatabase, ReadableTable, Table, TableDefinition, TypeName, Value, WriteTransaction};
-use rocket::{data::N, futures::sink::With};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::Sender;
 

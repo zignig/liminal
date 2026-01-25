@@ -37,7 +37,7 @@ tracing-subscriber = "0.3.19"
 walkdir = "2.5.0"
 
 fs-tree = { path = "crates/fs-tree" }
-
+finder = { path = "crates/finder"}
 # iroh bits 
 iroh = { version = "0.95.1", features = ["discovery-local-network"] }
 iroh-blobs = "0.97.0"
@@ -59,8 +59,9 @@ iroh-smol-kv = { git = "https://github.com/Frando/iroh-smol-kv", branch = "iroh-
 iroh-tickets = "0.2.0"
 derive_more = { version = "2.1.1", features = ["display"] }
 moka = { version = "0.12.12", features = ["future"] }
+uuid = { version = "1.20.0", features = ["v4", "v7", "v8"] }
 
 # keeping some other tools in this folder
 [workspace]
-members = ["replica"]
+members = ["crates/finder","tools/replica","tools/findoid"]
 

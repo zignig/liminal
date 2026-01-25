@@ -31,7 +31,9 @@ mod store;
 mod templates;
 mod web;
 mod id_store;
+// mod finder;
 
+use finder::Finder;
 use cli::Command;
 use cli::Ticket;
 // use fren::FrenApi;
@@ -86,6 +88,8 @@ async fn main() -> Result<()> {
     // this needs to have a timeout
     endpoint.online().await;
 
+
+
     // Create the ID manager
     let id_manager = id_store::IdentityApi::spawn("data/id.rdb");
     let id_client = id_manager.client();
@@ -109,7 +113,7 @@ async fn main() -> Result<()> {
     let store = FsStore::load(path).await.unwrap();
     let blobs = iroh_blobs::BlobsProtocol::new(&store, None);
     
-    
+
     // Path browser
     let fileset = store::FileSet::new(blobs.clone());
     // TODO make this prettier.
@@ -121,6 +125,11 @@ async fn main() -> Result<()> {
     // clear out some old tags ( carefull )
     //fileset.del_tags("col-17").await.unwrap();
 
+        // Create the finder
+    let finder_topic = make_topic("finder");
+    let finder = Finder::new(finder_topic,blobs.clone(),gossip.clone(),secret_key.clone());
+    finder.spawn().await;
+    
     // DOCS !
     let docs_path = PathBuf::from("data/");
     let docs = Docs::persistent(docs_path)
@@ -128,11 +137,11 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
 
-    let mut d = docs.list().await.unwrap();
-    while let Some(docs) = d.next().await {
-        let docs = docs.unwrap();
-        println!("{:#?}", docs);
-    }
+    // let mut d = docs.list().await.unwrap();
+    // while let Some(docs) = d.next().await {
+    //     let docs = docs.unwrap();
+    //     println!("{:#?}", docs);
+    // }
 
     // FREN !
     // let fren_api = FrenApi::spawn();
@@ -144,24 +153,6 @@ async fn main() -> Result<()> {
         .accept(DOCS_ALPN, docs.clone())
         // .accept(FREN_ALPN, fren_api.expose().unwrap())
         .spawn();
-
-    // // make sure we are connected for tickets
-    // let addr = router.endpoint().node_addr().initialized().await;
-    // let node_ticket = NodeTicket::new(addr);
-    // // join the gossip topic by connecting to known peers, if any
-    // let peer_ids: Vec<NodeId> = peers.iter().map(|p| p.node_id).collect();
-
-    // if peers.is_empty() {
-    //     println!("> waiting for peers to join us...");
-    // } else {
-    //     println!("> trying to connect to {} peers...", peers.len());
-    //     // add the peer addrs from the ticket to our endpoint's addressbook so that they can be dialed
-    //     for peer in peers.into_iter() {
-    //         // Stash the peers in the config
-    //         let _ = conf.add_node(peer.id);
-    //         endpoint.add(peer)?;
-    //     }
-    // };
 
     // Testing notes interface
     // Stores the doc id in the config and makes a new one
@@ -207,7 +198,7 @@ async fn main() -> Result<()> {
     // Set liminal, hashed as the topic
 
     let peer_ids = vec![];
-    let topic = TopicId::from_bytes(*Hash::new("liminal::").as_bytes());
+    let topic =make_topic("liminal::");
     let repl = replicate::Replicator::new(
         gossip.clone(),
         blobs.clone(),
@@ -259,4 +250,8 @@ async fn main() -> Result<()> {
     // Shutdown
     router.shutdown().await.e()?;
     Ok(())
+}
+
+pub fn make_topic(name: &str )-> TopicId { 
+    TopicId::from_bytes(*Hash::new(name).as_bytes())
 }
