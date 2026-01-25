@@ -1,6 +1,6 @@
 use iroh::{Endpoint, EndpointId, SecretKey, protocol::Router};
 use iroh_blobs::Hash;
-use iroh_gossip::{ALPN, TopicId, api::GossipReceiver, net::Gossip};
+use iroh_gossip::{TopicId, api::GossipReceiver, net::Gossip};
 use n0_error::{Result, StdResultExt};
 use n0_future::StreamExt;
 
@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::{process, time::Duration};
 use tracing::{error, warn};
 
-use finder::Finder;
+// use finder::Finder;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -67,7 +67,7 @@ async fn main() -> Result<()> {
     // setup router
     let router = Router::builder(endpoint.clone())
         .accept(iroh_blobs::ALPN, blobs.clone())
-        .accept(ALPN, gossip.clone())
+        .accept(iroh_gossip::ALPN, gossip.clone())
         .spawn();
 
     endpoint.online().await;
@@ -75,14 +75,18 @@ async fn main() -> Result<()> {
     // Config::new(endpoint.id(),endpoint.secret_key().clone());
     if let Some(mother_ship) = config.mother_ship {
         let my_topic = make_topic(config.topic.as_str());
-        let goss = gossip.subscribe_and_join(my_topic, vec![mother_ship]).await?;
+        let goss = gossip
+            .subscribe_and_join(my_topic, vec![mother_ship])
+            .await?;
         let (tx, rx) = goss.split();
         tokio::task::spawn(subscribe_loop(rx));
         println!("GOSSIP GO!! {:#?}", my_topic);
-        for i in 0..1000 {
+        let mut counter = 0u32;
+        loop {
             let mut data: Vec<u8> = vec![0; 32];
             rand::fill(&mut data[..]);
-            println!("{:?} , {:?}", i, data);
+            println!("{:} -> {:?}", counter, data);
+            counter += 1;
             tx.broadcast(data.into()).await?;
             tokio::time::sleep(Duration::from_millis(5)).await;
         }

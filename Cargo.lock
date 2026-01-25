@@ -1441,6 +1441,8 @@ checksum = "3a3076410a55c90011c298b04d0cfa770b00fa04e1e3c97d3f6c9de105a03844"
 name = "finder"
 version = "0.1.0"
 dependencies = [
+ "bytes",
+ "ed25519-dalek 2.2.0",
  "iroh",
  "iroh-blobs",
  "iroh-gossip",
@@ -1448,6 +1450,9 @@ dependencies = [
  "n0-error",
  "n0-future 0.3.2",
  "n0-snafu",
+ "postcard",
+ "serde",
+ "serde_derive",
  "tokio",
  "uuid",
 ]
@@ -5547,6 +5552,7 @@ checksum = "ee48d38b119b0cd71fe4141b30f5ba9c7c5d9f4e7a3a8b4a674e4b6ef789976f"
 dependencies = [
  "getrandom 0.3.4",
  "js-sys",
+ "serde_core",
  "wasm-bindgen",
 ]
 
