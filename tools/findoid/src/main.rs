@@ -70,7 +70,8 @@ async fn main() -> Result<()> {
         .accept(iroh_gossip::ALPN, gossip.clone())
         .spawn();
 
-    endpoint.online().await;
+    
+    let _ = endpoint.online().await;
     println!("{:#?}", &endpoint.id());
     // Config::new(endpoint.id(),endpoint.secret_key().clone());
     if let Some(mother_ship) = config.mother_ship {
@@ -88,7 +89,7 @@ async fn main() -> Result<()> {
             println!("{:} -> {:?}", counter, data);
             counter += 1;
             tx.broadcast(data.into()).await?;
-            tokio::time::sleep(Duration::from_millis(5)).await;
+            // tokio::time::sleep(Duration::from_millis(5)).await;
         }
     }
 
