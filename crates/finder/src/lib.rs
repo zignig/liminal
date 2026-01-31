@@ -7,7 +7,7 @@ use bytes::Bytes;
 use iroh::Signature;
 use iroh::{EndpointId, PublicKey, SecretKey};
 use iroh_blobs::{BlobsProtocol, Hash};
-use iroh_gossip::api::Event;
+use iroh_gossip::api::{Event, GossipTopic};
 use iroh_gossip::{Gossip, TopicId};
 use n0_error::AnyError;
 use n0_future::StreamExt;
@@ -19,6 +19,7 @@ use tokio::task;
 
 use interface::FinderApi;
 
+// CLi 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FinderMessage {
     WhoHas {
@@ -34,7 +35,11 @@ pub enum FinderMessage {
     },
     Beacon {
         mess: String,
-    }, // more here later ( for publishing and user identification)
+    }, 
+    ResolveUser { 
+        endpoint: EndpointId
+    }
+    // more here later ( for publishing and user identification)
 }
 
 pub struct Finder {
@@ -42,6 +47,7 @@ pub struct Finder {
     blobs: BlobsProtocol,
     gossip: Gossip,
     secret_key: SecretKey,
+    bootstrap: Vec<EndpointId>,
     api: FinderApi,
 }
 
@@ -50,6 +56,7 @@ impl Finder {
         topic: TopicId,
         blobs: BlobsProtocol,
         gossip: Gossip,
+        bootstrap: Vec<EndpointId>,
         secret_key: SecretKey,
     ) -> Self {
         let api = FinderApi::new();
@@ -57,6 +64,7 @@ impl Finder {
             topic,
             blobs,
             gossip,
+            bootstrap,
             secret_key,
             api,
         }
@@ -66,20 +74,23 @@ impl Finder {
         // Set up the main worker
         // gossip
         //
-        task::spawn(runner(
-            self.gossip.clone(),
-            self.topic,
+        let gossip_topic = if self.bootstrap.len() == 0 { 
+            self.gossip.subscribe(self.topic, vec![]).await.unwrap()
+        } else {
+            self.gossip.subscribe_and_join(self.topic, self.bootstrap.clone()).await.unwrap()
+        };
+        let t = task::spawn(runner(
+            gossip_topic,
             self.secret_key.clone(),
         ));
     }
 }
 
-pub async fn runner(gossip: Gossip, topic: TopicId, secret_key: SecretKey) -> Result<(), AnyError> {
-    let goss = gossip
-        .subscribe_and_join(topic, vec![])
-        .await
-        .expect("bad goss");
-    let (tx, mut rx) = goss.split();
+pub async fn runner(
+    gossip: GossipTopic,
+    secret_key: SecretKey,
+) -> Result<(), AnyError> {
+    let (tx, mut rx) = gossip.split();
     match SignedMessage::sign_and_encode(
         &secret_key,
         &FinderMessage::Beacon {

@@ -127,7 +127,7 @@ async fn main() -> Result<()> {
 
         // Create the finder
     let finder_topic = make_topic("finder");
-    let finder = Finder::new(finder_topic,blobs.clone(),gossip.clone(),secret_key.clone());
+    let finder = Finder::new(finder_topic,blobs.clone(),gossip.clone(),vec![],secret_key.clone());
     finder.spawn().await;
     
     // DOCS !
