@@ -35,10 +35,10 @@ impl Config {
         std::fs::write(Config::FILE_NAME, contents).expect("borked file");
     }
 
-    fn new(id: EndpointId, secret: SecretKey) -> Config {
+    fn new(secret: SecretKey) -> Config {
         let config = Config {
             topic: "finder".to_string(),
-            mother_ship: Some(vec![id]),
+            mother_ship: Some(vec![]),
             secret: secret,
         };
         config.save();
@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
         Err(e) => {
             error!("{:?}", e);
             let endpoint = Endpoint::builder().bind().await?;
-            let config = Config::new(endpoint.id(), endpoint.secret_key().clone());
+            let config = Config::new( endpoint.secret_key().clone());
             (config, endpoint)
         }
     };
