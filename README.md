@@ -8,4 +8,9 @@ The plan is to make it a game asset server, however it should be a generic blob 
 
 As of 20250719 experiments continue....
 
+Here we are ... 20260205 , work continues. 
+
+Restructuring the repo , make some libraies. and put things into folders.
+
+
 ---
