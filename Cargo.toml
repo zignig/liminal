@@ -63,5 +63,5 @@ uuid = { version = "1.20.0", features = ["v4", "v7", "v8"] }
 
 # keeping some other tools in this folder
 [workspace]
-members = ["crates/finder","tools/findoid", "crates/replica", "crates/fren"]
+members = ["crates/finder","tools/findoid", "crates/replica", "crates/fren", "crates/idstore", "tools/frosty"]
 
