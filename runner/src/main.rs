@@ -12,14 +12,13 @@ mod webrouter;
 mod workloads;
 
 use custom_plugin::CustomPlugin;
-use webrouter::EasyRouter;
 use storage::WasmLoader;
+use webrouter::EasyRouter;
+use workloads::WorkloadWrapped;
 
 // The wash stuff
 use wash_runtime::{
-    engine::Engine,
-    host::{HostApi, HostBuilder, http::Ingress},
-    plugin::wasi_config::DynamicConfig,
+    engine::Engine, host::{HostApi, HostBuilder, http::Ingress}, plugin::{KeyOwnership::Workload, wasi_config::DynamicConfig},
 };
 
 // Local tracing
@@ -46,11 +45,14 @@ async fn main() -> Result<()> {
 
     let blobs = storage::Storage::new(PathBuf::from_str("data")?).await?;
 
-    // Put blob into storage if there is one on the command line
-    // testing only
+    let _blag = WorkloadWrapped{ name : "BOB".to_string()};
+
     if let Some(path) = args.input {
-        
-        blobs.save(path).await?;
+        let service = match args.is_service { 
+            Some(service ) => true,
+            None => false
+        }
+        blobs.save(path,service).await?;
     }
 
     // Create the engine with pooling enabled
@@ -82,8 +84,8 @@ async fn main() -> Result<()> {
     for name in item_list.iter() {
         // info!("load me {}", &name);
         if let Some(data) = blobs.get_item(name.clone()).await? {
-            let _  = WasmLoader::new(name,data.clone()).await?;
-            
+            let _ = WasmLoader::new(name, data.clone()).await?;
+
             // info!("have the blob {}",name);
             // Fix the name for the router;
             let short_name = name

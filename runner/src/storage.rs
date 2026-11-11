@@ -45,15 +45,18 @@ impl Storage {
     }
 
     // Take a blog and put it into storage
-    pub async fn save(&self, path: PathBuf) -> Result<()> {
+    pub async fn save(&self, path: PathBuf,is_service: bool) -> Result<()> {
         let abs_path = std::path::absolute(&path)?;
         let t = self.blobs.add_path(&abs_path).await?;
 
-        let ps = if let Some(file_name) = path.file_name().and_then(|os_str| os_str.to_str()) {
+        let mut ps = if let Some(file_name) = path.file_name().and_then(|os_str| os_str.to_str()) {
             format!("preboot::{}", file_name)
         } else {
             format!("preboot::{}", path.display())
         };
+        if is_service { 
+            ps = format!("service-{}",ps);
+        }
         println!("{:#?} {:#?}", &t, &ps);
         self.blobs.tags().set(ps, t.hash_and_format()).await?;
         // Delete the auto tag
@@ -99,7 +102,10 @@ impl WasmLoader {
             wit_component::DecodedWasm::Component(resolve, _id) => resolve,
         };
         info!("{}",name);
-        println!("{:#?}",resolve));
+        for (_ , world) in resolve.worlds.iter(){ 
+            println!("WORLD : {}",world.name)
+        }
+        // println!("{:#?}",resolve.);
         Ok(())
     }
 }

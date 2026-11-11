@@ -6,10 +6,19 @@ use std::collections::HashMap;
 use crate::storage::IrohWorkload;
 use anyhow::{Result, anyhow};
 use bytes::Bytes;
+use serde::{Deserialize, Serialize};
 use wash_runtime::{
     types::{Component, LocalResources, Workload, WorkloadStartRequest},
     wit::WitWorld,
 };
+
+// Set up a construct to load and save workloads (not yaml)
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WorkloadWrapped {
+    pub name: String,
+}
+
+impl WorkloadWrapped {}
 
 // This is more making stuff
 pub struct Dispatcher {
