@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
 use anyhow::{Result, anyhow};
+use bytes::Bytes;
 use iroh_blobs::store::fs::FsStore;
 use n0_future::StreamExt;
-use bytes::Bytes;
-use serde::{Deserialize, Serialize}; 
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub struct Storage {
@@ -38,14 +38,14 @@ impl Storage {
         let tag = self.blobs.tags().get(&name).await?;
         let name = name.as_str();
         if let Some(tag) = tag {
-            let data =  self.blobs.get_bytes(tag.hash).await?;
+            let data = self.blobs.get_bytes(tag.hash).await?;
             return Ok(Some(data));
         }
         Err(anyhow!("bork on getting {}", name))
     }
 
     // Take a blog and put it into storage
-    pub async fn save(&self, path: PathBuf,is_service: bool) -> Result<()> {
+    pub async fn save(&self, path: PathBuf, is_service: bool) -> Result<()> {
         let abs_path = std::path::absolute(&path)?;
         let t = self.blobs.add_path(&abs_path).await?;
 
@@ -54,8 +54,8 @@ impl Storage {
         } else {
             format!("preboot::{}", path.display())
         };
-        if is_service { 
-            ps = format!("service-{}",ps);
+        if is_service {
+            ps = format!("service-{}", ps);
         }
         println!("{:#?} {:#?}", &t, &ps);
         self.blobs.tags().set(ps, t.hash_and_format()).await?;
@@ -65,47 +65,45 @@ impl Storage {
     }
 }
 
-
 // Some help structs
-#[derive(Debug,Serialize,Deserialize)]
-pub struct IrohWorkload { 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IrohWorkload {
     namespace: String,
     service: SignedPair,
-    components: Vec<SignedPair>
-
+    components: Vec<SignedPair>,
 }
 
-#[derive(Debug,Serialize,Deserialize)]
-struct SignedPair { 
+#[derive(Debug, Serialize, Deserialize)]
+struct SignedPair {
     name: String,
     address: iroh_blobs::Hash,
-    // signature: 
+    // signature:
 }
 
-impl IrohWorkload { 
+impl IrohWorkload {}
 
-}
-
-
-
+use tracing::{info, warn};
 /// Ingest a new wasm
-/// 
-use wit_component::decode  ; 
-use tracing::info;
+///
+use wit_component::decode;
 pub struct WasmLoader;
 
-impl WasmLoader { 
-    pub async fn new(name: &String , data: Bytes) -> Result<()> { 
+impl WasmLoader {
+    pub async fn new(name: &String, data: Bytes) -> Result<()> {
         let info = decode(&data)?;
-        let resolve = match info {
-            wit_component::DecodedWasm::WitPackage(resolve, _id) => resolve,
-            wit_component::DecodedWasm::Component(resolve, _id) => resolve,
+        let (resolve,id) = match info {
+            wit_component::DecodedWasm::WitPackage(_resolve, _id) => {
+                warn!("Ignore wit packages");
+                return Err(anyhow!("don't do wit packages yet!"));
+            }
+            wit_component::DecodedWasm::Component(resolve, id) => (resolve,id),
         };
-        info!("{}",name);
-        for (_ , world) in resolve.worlds.iter(){ 
-            println!("WORLD : {}",world.name)
-        }
-        // println!("{:#?}",resolve.);
+        info!("{}", name);
+        // for (_ , world) in resolve.worlds.iter(){
+        //     println!("WORLD : {}",world.name)
+        // }
+        // println!("{:#?}",resolve);
+        println!("{:#?}",resolve);
         Ok(())
     }
 }

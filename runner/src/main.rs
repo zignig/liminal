@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
         let service = match args.is_service { 
             Some(service ) => true,
             None => false
-        }
+        };
         blobs.save(path,service).await?;
     }
 
