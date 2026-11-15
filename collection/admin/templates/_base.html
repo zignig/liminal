@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="static/css/simple.css">
+  <title>Page Title</title>
+</head>
+
+<body>
+
+  <header>
+    <h1>Simple.css Test Page</h1>
+    <p>This is a test page filled with common HTML elements.</p>
+    <nav>
+      <ul>
+        <li><a class="current" href="#text">Text</a></li>
+        <li><a href="#embedded">Embedded content</a></li>
+        <li><a href="#forms">Form elements</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>Liminal Interface</p>
+  </footer>
+
+</body>
+
+</html>
