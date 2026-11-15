@@ -4476,6 +4476,7 @@ dependencies = [
  "hyper",
  "iroh-blobs",
  "n0-future",
+ "semver",
  "serde",
  "serde_json",
  "tokio",

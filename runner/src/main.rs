@@ -14,11 +14,13 @@ mod workloads;
 use custom_plugin::CustomPlugin;
 use storage::WasmLoader;
 use webrouter::EasyRouter;
-use workloads::WorkloadWrapped;
+// use workloads::WorkloadWrapped;
 
 // The wash stuff
 use wash_runtime::{
-    engine::Engine, host::{HostApi, HostBuilder, http::Ingress}, plugin::{KeyOwnership::Workload, wasi_config::DynamicConfig},
+    engine::Engine, host::{HostApi, HostBuilder, http::Ingress}, plugin::{
+        wasi_blobstore::InMemoryBlobstore, wasi_config::DynamicConfig, wasmcloud_secrets::WasmcloudSecrets
+    },
 };
 
 // Local tracing
@@ -31,7 +33,8 @@ use crate::workloads::Dispatcher;
 struct Args {
     /// Path to wasm
     input: Option<PathBuf>,
-    is_service: Option<bool>,
+    #[arg(short, long, action = clap::ArgAction::SetTrue, default_value_t = false)]
+    service: bool,
 }
 
 #[tokio::main]
@@ -45,14 +48,9 @@ async fn main() -> Result<()> {
 
     let blobs = storage::Storage::new(PathBuf::from_str("data")?).await?;
 
-    let _blag = WorkloadWrapped{ name : "BOB".to_string()};
-
+    // put a wasm into blob storage
     if let Some(path) = args.input {
-        let service = match args.is_service { 
-            Some(service ) => true,
-            None => false
-        };
-        blobs.save(path,service).await?;
+        blobs.save(path, args.service).await?;
     }
 
     // Create the engine with pooling enabled
@@ -61,6 +59,10 @@ async fn main() -> Result<()> {
     let config_plugin = DynamicConfig::default();
     let cust_plug = CustomPlugin::default();
 
+    // Blob store thingo
+    // let wasm_blobs = MultiplexedAsyncBlobstore::new().with_provider(Arc::new(InMemoryProvider));
+    let wasm_blobs = InMemoryBlobstore::new(None);
+    let sec_plugin = WasmcloudSecrets::new();
     // Build and start the host
     let host = HostBuilder::new()
         .with_engine(engine)
@@ -68,6 +70,8 @@ async fn main() -> Result<()> {
         .with_http_handler(Arc::new(http_handler))
         .with_plugin(Arc::new(config_plugin))?
         .with_plugin(Arc::new(cust_plug))?
+        .with_plugin(Arc::new(wasm_blobs))?
+        .with_plugin(Arc::new(sec_plugin))?
         .build()?;
 
     // Go
@@ -76,15 +80,18 @@ async fn main() -> Result<()> {
 
     // Make the dispatcher
     let ww = host.wit_world();
-    let dispatcher = Dispatcher::new(ww);
+    let mut dispatcher = Dispatcher::new(ww);
+    // Some test extra's for the dispatcher.
+    dispatcher.bind();
+    dispatcher.show();
 
     // Load the default items
-    let item_list = blobs.list_tags("preboot::").await?;
+    let item_list = blobs.list_tags("").await?;
     info!("{:#?}", &item_list);
     for name in item_list.iter() {
         // info!("load me {}", &name);
         if let Some(data) = blobs.get_item(name.clone()).await? {
-            let _ = WasmLoader::new(name, data.clone()).await?;
+            let _ = WasmLoader::new(name.to_string(), data.clone())?;
 
             // info!("have the blob {}",name);
             // Fix the name for the router;

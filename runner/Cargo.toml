@@ -31,6 +31,7 @@ wash-runtime = { path = "..\\..\\wasmCloud\\crates\\wash-runtime", default-featu
     "wasi-config",
     "wasi-logging",
     "wasi-blobstore",  
+    "wasm_component_model_implements",
 ] }
 
 wasmtime = { version = "48.0.8", default-features = false }
@@ -45,3 +46,4 @@ hyper = "1.12.0"
 bytes = "1.12.1"
 wit-component = "0.263.0"
 toml = "1.2.1"
+semver = "1.0.28"

@@ -9,7 +9,7 @@ use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use wash_runtime::{
     types::{Component, LocalResources, Workload, WorkloadStartRequest},
-    wit::WitWorld,
+    wit::{WitInterface, WitWorld},
 };
 
 // Set up a construct to load and save workloads (not yaml)
@@ -28,12 +28,31 @@ pub struct Dispatcher {
 // This needs to be fully rcanned.
 impl Dispatcher {
     pub fn new(world: WitWorld) -> Self {
-        // println!("{:#?}",&world);
         Dispatcher { world: world }
     }
 
+    pub fn show(&self) {
+        let import = self.world.imports.clone();
+        let export = self.world.exports.clone();
+        println!("IMPORTS");
+        for item in import.iter() {
+            println!("\t{:#?}", item.to_string())
+        }
+        println!("EXPORTS");
+        for item in export.iter() {
+            println!("\t{:#?}", item.to_string())
+        }
+    }
+
+    pub fn bind(&mut self) {
+        // let r = default_blob_iface();
+        // self.world.imports.insert(r);
+        // let s = default_secrets_iface();
+        // self.world.imports.insert(s);
+    }
+
     // given an encoded workload load run and check
-    pub fn from_iroh(&self, workload: IrohWorkload) -> Result<WorkloadStartRequest> {
+    pub fn from_iroh(&self, _workload: IrohWorkload) -> Result<WorkloadStartRequest> {
         Err(anyhow!("Iroh load fail!!"))
     }
 
@@ -67,5 +86,43 @@ impl Dispatcher {
             },
         };
         Ok(req)
+    }
+}
+
+fn default_blob_iface() -> WitInterface {
+    WitInterface {
+        namespace: "wasmcloud".to_string(),
+        package: "blobstore".to_string(),
+        interfaces: [
+            "blobstore".to_string(),
+            "container".to_string(),
+            "types".to_string(),
+        ]
+        .into_iter()
+        .collect(),
+        version: Some(semver::Version::parse("0.1.0").unwrap()),
+        config: HashMap::from([
+            ("backend".to_string(), "filesystem".to_string()),
+            ("root".to_string(), "tmp/blobstore".to_string()),
+        ]),
+        // config: Default::default(),
+        name: None,
+    }
+}
+
+fn default_secrets_iface() -> WitInterface {
+    WitInterface {
+        namespace: "wasmcloud".to_string(),
+        package: "secrets".to_string(),
+        interfaces: ["store".to_string(), "reveal".to_string()]
+            .into_iter()
+            .collect(),
+        version: Some(semver::Version::parse("2.1.0").unwrap()),
+        config: HashMap::from([
+            ("registry-username".to_string(), "wasmcloud".to_string()),
+            ("registry-password".to_string(), "wamcloud".to_string()),
+        ]),
+        // config: Default::default(),
+        name: None,
     }
 }

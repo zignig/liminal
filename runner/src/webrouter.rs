@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use hyper::Uri;
-use tracing::warn;
+// use tracing::{debug, warn};
 use wash_runtime::{
     engine::workload::ResolvedWorkload,
     host::{
@@ -27,13 +27,13 @@ impl Router for EasyRouter {
     async fn on_workload_resolved(
         &self,
         resolved_handle: &ResolvedWorkload,
-        component_id: &str,
+        _component_id: &str,
     ) -> anyhow::Result<()> {
-        warn!(
-            "ATTACH WORKSPACE {:#?} ==> {}",
-            &resolved_handle.name(),
-            component_id
-        );
+        // debug!(
+        //     "ATTACH WORKSPACE {:#?} ==> {}",
+        //     &resolved_handle.name(),
+        //     component_id
+        // );
         let item_name = format!("/{}", &resolved_handle.name());
         let mut lock = self
             .routes

@@ -82,28 +82,28 @@ struct SignedPair {
 
 impl IrohWorkload {}
 
-use tracing::{info, warn};
+use tracing::warn;
 /// Ingest a new wasm
 ///
-use wit_component::decode;
+use wit_component::{DecodedWasm, decode};
 pub struct WasmLoader;
 
 impl WasmLoader {
-    pub async fn new(name: &String, data: Bytes) -> Result<()> {
-        let info = decode(&data)?;
-        let (resolve,id) = match info {
-            wit_component::DecodedWasm::WitPackage(_resolve, _id) => {
-                warn!("Ignore wit packages");
-                return Err(anyhow!("don't do wit packages yet!"));
+    pub fn new(name: String, wasm_bytes: Bytes) -> anyhow::Result<Option<String>> {
+        println!("{}", name);
+        match decode(&wasm_bytes)? {
+            DecodedWasm::Component(resolve, world_id) => {
+                let world = &resolve.worlds[world_id];
+                if let Some(pkg_id) = world.package {
+                    let pkg = &resolve.packages[pkg_id];
+                    // Returns format like "namespace:name" (or with @version)
+                    warn!("{:#?}", &pkg.name.to_string());
+                    Ok(Some(pkg.name.to_string()))
+                } else {
+                    Ok(None)
+                }
             }
-            wit_component::DecodedWasm::Component(resolve, id) => (resolve,id),
-        };
-        info!("{}", name);
-        // for (_ , world) in resolve.worlds.iter(){
-        //     println!("WORLD : {}",world.name)
-        // }
-        // println!("{:#?}",resolve);
-        println!("{:#?}",resolve);
-        Ok(())
+            DecodedWasm::WitPackage(_, _) => Ok(None),
+        }
     }
 }
