@@ -9,10 +9,17 @@ crate-type = ["cdylib"]
 
 [dependencies]
 askama = "0.16.1"
-axum = { version = "0.8", default-features = false, features = ["json", "query", "matched-path"] }
+axum = { version = "0.8", default-features = false, features = [
+    "json",
+    "query",
+    "matched-path",
+    "form",
+] }
+axum-extra = { version = "0.12.6", features = ["cookie"] }
 mime_guess = "2.0.5"
 rust-embed = { version = "8.14.0" }
 serde = { version = "1.0", features = ["derive"] }
+tower-cookies = "0.11.0"
 wstd = "0.6"
 wstd-axum = "0.6"
 

@@ -1,5 +1,23 @@
 {% extends "_base.html" %}
 
+{% block head %}
+<script src="static/js/app.js"></script>
+{% endblock %}
+
+{% block auth %}
+{% if let Some(user)= username %}
+<a href="logout" class="button is-small">
+    {{ user }}
+</a>
+
+{% else %}
+<a href="login" class="button is-small">
+    Log in
+</a>
+{% endif %}
+
+{% endblock %}
 {% block content %}
 <h1>Template index page</h1>
+<p class="status"></p>
 {% endblock %}
