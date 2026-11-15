@@ -1,3 +1,4 @@
+/// Serve the static files with cache headers.
 use axum::{
     extract::Path,
     http::{StatusCode, header},

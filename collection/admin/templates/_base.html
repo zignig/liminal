@@ -4,7 +4,7 @@
 
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}wsrv{% endblock %}</title>
+    <title>{% block title %}{{ section }}{% endblock %}</title>
     <link rel="stylesheet" type="text/css" href="static/css/bulma.min.css" />
     <link rel="stylesheet" type="text/css" href="static/css/app.css" />
     {% block head %}{% endblock %}
@@ -49,7 +49,7 @@
         <hr>
         <div class="content has-text-centered">
             <p>
-                <strong>Liminal</strong> by <a href="https://github.com/zignig">Zignig</a>
+                <strong>Liminal</strong>
             </p>
         </div>
     </div>
