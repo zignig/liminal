@@ -1,8 +1,6 @@
-use axum::extract::Query;
+use axum::Router;
 use axum::http::StatusCode;
-use axum::routing::{get, post};
-use axum::{Json, Router};
-use serde::{Deserialize, Serialize};
+use axum::routing::get;
 
 mod static_files;
 mod templates;

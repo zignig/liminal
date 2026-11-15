@@ -9,6 +9,7 @@ use axum::{
 pub fn page_router() -> Router {
     Router::new()
         .route("/", get(index))
+        .route("/index", get(index))
         .route("/workload", get(workload))
 }
 
