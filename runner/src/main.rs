@@ -19,7 +19,7 @@ use webrouter::EasyRouter;
 // The wash stuff
 use wash_runtime::{
     engine::Engine, host::{HostApi, HostBuilder, http::Ingress}, plugin::{
-        wasi_blobstore::InMemoryBlobstore, wasi_config::DynamicConfig, wasmcloud_secrets::WasmcloudSecrets
+        wasi_blobstore::{InMemoryProvider, MultiplexedAsyncBlobstore, MultiplexedBlobstore}, wasi_config::DynamicConfig, wasmcloud_secrets::WasmcloudSecrets,
     },
 };
 
@@ -60,9 +60,12 @@ async fn main() -> Result<()> {
     let cust_plug = CustomPlugin::default();
 
     // Blob store thingo
-    // let wasm_blobs = MultiplexedAsyncBlobstore::new().with_provider(Arc::new(InMemoryProvider));
-    let wasm_blobs = InMemoryBlobstore::new(None);
+    let wasm_blobs = MultiplexedAsyncBlobstore::new().with_provider(Arc::new(InMemoryProvider));
+    let wasm_blobs2 = MultiplexedBlobstore::new(); //.with_provider(Arc::new(InMemoryProvider));
+
+    // let wasm_blobs = InMemoryBlobstore::new(None);
     let sec_plugin = WasmcloudSecrets::new();
+
     // Build and start the host
     let host = HostBuilder::new()
         .with_engine(engine)
@@ -71,6 +74,7 @@ async fn main() -> Result<()> {
         .with_plugin(Arc::new(config_plugin))?
         .with_plugin(Arc::new(cust_plug))?
         .with_plugin(Arc::new(wasm_blobs))?
+        .with_plugin(Arc::new(wasm_blobs2))?
         .with_plugin(Arc::new(sec_plugin))?
         .build()?;
 
@@ -86,7 +90,7 @@ async fn main() -> Result<()> {
     dispatcher.show();
 
     // Load the default items
-    let item_list = blobs.list_tags("").await?;
+    let item_list = blobs.list_tags("preboot::").await?;
     info!("{:#?}", &item_list);
     for name in item_list.iter() {
         // info!("load me {}", &name);
@@ -100,8 +104,8 @@ async fn main() -> Result<()> {
                 .trim_end_matches(".wasm");
             let wlr = dispatcher.simple(short_name, data)?;
             println!("{} = {:#?}", name, wlr.workload_id);
-            let _wr = host.workload_start(wlr).await?;
-            // info!("{:#?}",wr);
+            let wr = host.workload_start(wlr).await?;
+            info!("{:#?}", wr);
         }
     }
 

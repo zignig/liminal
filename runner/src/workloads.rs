@@ -3,7 +3,7 @@ use std::collections::HashMap;
 // Create and dispatch workloads
 // Need to include rcan and storage tricks
 
-use crate::storage::IrohWorkload;
+// use crate::storage::IrohWorkload;
 use anyhow::{Result, anyhow};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,7 @@ use wash_runtime::{
 };
 
 // Set up a construct to load and save workloads (not yaml)
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorkloadWrapped {
     pub name: String,
@@ -45,6 +46,7 @@ impl Dispatcher {
     }
 
     pub fn bind(&mut self) {
+        // self.world.imports.remove(value)
         // let r = default_blob_iface();
         // self.world.imports.insert(r);
         // let s = default_secrets_iface();
@@ -52,9 +54,9 @@ impl Dispatcher {
     }
 
     // given an encoded workload load run and check
-    pub fn from_iroh(&self, _workload: IrohWorkload) -> Result<WorkloadStartRequest> {
-        Err(anyhow!("Iroh load fail!!"))
-    }
+    // pub fn from_iroh(&self, _workload: IrohWorkload) -> Result<WorkloadStartRequest> {
+    //     Err(anyhow!("Iroh load fail!!"))
+    // }
 
     // given a single wasm , Drop it into the testing zone
     pub fn simple(&self, name: &str, data: Bytes) -> Result<WorkloadStartRequest> {
@@ -76,7 +78,7 @@ impl Dispatcher {
         let req = WorkloadStartRequest {
             workload_id: uuid::Uuid::new_v4().to_string(),
             workload: Workload {
-                namespace: "testing".to_string(),
+                namespace: "oci-registry".to_string(),
                 name: name.to_string(),
                 annotations: HashMap::new(),
                 service: None,
@@ -89,6 +91,7 @@ impl Dispatcher {
     }
 }
 
+#[allow(dead_code)]
 fn default_blob_iface() -> WitInterface {
     WitInterface {
         namespace: "wasmcloud".to_string(),
@@ -110,6 +113,7 @@ fn default_blob_iface() -> WitInterface {
     }
 }
 
+#[allow(dead_code)]
 fn default_secrets_iface() -> WitInterface {
     WitInterface {
         namespace: "wasmcloud".to_string(),

@@ -4,7 +4,7 @@ use anyhow::{Result, anyhow};
 use bytes::Bytes;
 use iroh_blobs::store::fs::FsStore;
 use n0_future::StreamExt;
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub struct Storage {
@@ -65,22 +65,22 @@ impl Storage {
     }
 }
 
-// Some help structs
-#[derive(Debug, Serialize, Deserialize)]
-pub struct IrohWorkload {
-    namespace: String,
-    service: SignedPair,
-    components: Vec<SignedPair>,
-}
+// // Some help structs
+// #[derive(Debug, Serialize, Deserialize)]
+// pub struct IrohWorkload {
+//     namespace: String,
+//     service: SignedPair,
+//     components: Vec<SignedPair>,
+// }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct SignedPair {
-    name: String,
-    address: iroh_blobs::Hash,
-    // signature:
-}
+// #[derive(Debug, Serialize, Deserialize)]
+// struct SignedPair {
+//     name: String,
+//     address: iroh_blobs::Hash,
+//     // signature:
+// }
 
-impl IrohWorkload {}
+// impl IrohWorkload {}
 
 use tracing::warn;
 /// Ingest a new wasm
