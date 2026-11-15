@@ -1,16 +1,6 @@
-# testing for exim plugin stuff
+# Wasm cloud testing 
 
-1. test plugin
-2. uploader
-3. runner
+Investigating [wasmcloud](https://wasmcloud.com) connecting to [iroh](https://iroh.computer/) I think it will be able to make cool things.
 
-# Installation 
-
-The wasip3 target  , not using extism ( out of date)
-
-need nightly target 
-
-`
-rustup target add wasm32-wasip3
-`
+This is just an applcation server at the moment but could be heaps more with iroh backing data and comms.
 
