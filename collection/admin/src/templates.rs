@@ -7,7 +7,9 @@ use axum::{
 };
 
 pub fn page_router() -> Router {
-    Router::new().route("/", get(index))
+    Router::new()
+        .route("/", get(index))
+        .route("/workload", get(workload))
 }
 
 #[derive(Template)]
@@ -19,6 +21,16 @@ async fn index() -> impl IntoResponse {
     HtmlTemplate(index_page)
 }
 
+#[derive(Template)]
+#[template(path = "workload.html")]
+pub struct WorkloadTemplate;
+
+async fn workload() -> impl IntoResponse {
+    let workload_page = WorkloadTemplate {};
+    HtmlTemplate(workload_page)
+}
+
+// Template responder
 struct HtmlTemplate<T>(T);
 
 impl<T> IntoResponse for HtmlTemplate<T>

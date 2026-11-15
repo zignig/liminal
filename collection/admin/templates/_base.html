@@ -1,35 +1,53 @@
+</html>
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="static/css/simple.css">
-  <title>Page Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}wsrv{% endblock %}</title>
+    <link rel="stylesheet" type="text/css" href="static/css/bulma.min.css" />
+    <link rel="stylesheet" type="text/css" href="static/css/app.css" />
+    {% block head %}{% endblock %}
 </head>
 
 <body>
-
-  <header>
-    <h1>Simple.css Test Page</h1>
-    <p>This is a test page filled with common HTML elements.</p>
-    <nav>
-      <ul>
-        <li><a class="current" href="#text">Text</a></li>
-        <li><a href="#embedded">Embedded content</a></li>
-        <li><a href="#forms">Form elements</a></li>
-      </ul>
+    <nav class="navbar is-visible">
+        <div id="navMenu" class="navbar-menu">
+            <div class="navbar-brand">
+                <div class="block">
+                    <a href="">
+                        <div class="title is-4 brand">Liminal</div>
+                    </a>
+                </div>
+            </div>
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <div class="buttons">
+                        {% block auth %}
+                        <a href="login" class="button is-small">
+                            Log in
+                        </a>
+                        {% endblock %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </nav>
-  </header>
-
-  <main>
-    {% block content %}{% endblock %}
-  </main>
-
-  <footer>
-    <p>Liminal Interface</p>
-  </footer>
-
+    <div class="container">
+        {% include "menu.html" %}
+        <div class="columns">
+            <aside class="column is-2 aside menu">
+                <p class="menu-label">Actions</p>
+                <ul class="menu-list">
+                    {% block actions %}
+                    {% endblock actions %}
+                </ul>
+            </aside>
+            <div class="column is-10">
+                {% block content %}<p>Content Block Placeholder</p>{% endblock %}
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

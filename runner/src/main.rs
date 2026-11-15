@@ -90,6 +90,11 @@ async fn main() -> Result<()> {
     dispatcher.show();
 
     // Load the default items
+    let all = blobs.list_tags("").await?;
+    for item in all.iter(){
+        println!("{}",item);
+    }
+    
     let item_list = blobs.list_tags("preboot::").await?;
     info!("{:#?}", &item_list);
     for name in item_list.iter() {

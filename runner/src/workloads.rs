@@ -8,7 +8,7 @@ use anyhow::{Result, anyhow};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use wash_runtime::{
-    types::{Component, LocalResources, Workload, WorkloadStartRequest},
+    types::{Component, LocalResources, Service, Workload, WorkloadStartRequest},
     wit::{WitInterface, WitWorld},
 };
 
@@ -58,6 +58,35 @@ impl Dispatcher {
     //     Err(anyhow!("Iroh load fail!!"))
     // }
 
+    // given a single wasm , Drop it into the service zone
+    pub fn service(&self, name: &str, data: Bytes) -> Result<WorkloadStartRequest> {
+        // just offer up all of the hosts available interface
+        let available = self.world.exports.clone().into_iter().collect();
+
+        let res = LocalResources::default();
+
+        // Load the simple component
+        let comp = Service {
+            bytes: data.into(),
+            digest: None,
+            local_resources: res,
+            max_restarts: 4,
+        };
+
+        let req = WorkloadStartRequest {
+            workload_id: uuid::Uuid::new_v4().to_string(),
+            workload: Workload {
+                namespace: "service".to_string(),
+                name: name.to_string(),
+                annotations: HashMap::new(),
+                service: Some(comp),
+                components: vec![],
+                host_interfaces: available,
+                volumes: vec![],
+            },
+        };
+        Ok(req)
+    }
     // given a single wasm , Drop it into the testing zone
     pub fn simple(&self, name: &str, data: Bytes) -> Result<WorkloadStartRequest> {
         // just offer up all of the hosts available interface
@@ -78,7 +107,7 @@ impl Dispatcher {
         let req = WorkloadStartRequest {
             workload_id: uuid::Uuid::new_v4().to_string(),
             workload: Workload {
-                namespace: "oci-registry".to_string(),
+                namespace: "testing".to_string(),
                 name: name.to_string(),
                 annotations: HashMap::new(),
                 service: None,

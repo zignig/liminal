@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 askama = "0.16.1"
 axum = { version = "0.8", default-features = false, features = ["json", "query", "matched-path"] }
 mime_guess = "2.0.5"
-rust-embed = "8.14.0"
+rust-embed = { version = "8.14.0" }
 serde = { version = "1.0", features = ["derive"] }
 wstd = "0.6"
 wstd-axum = "0.6"
