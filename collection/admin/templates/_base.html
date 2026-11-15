@@ -36,18 +36,24 @@
     <div class="container">
         {% include "menu.html" %}
         <div class="columns">
-            <aside class="column is-2 aside menu">
-                <p class="menu-label">Actions</p>
+            <aside class="column is-1 aside menu">
                 <ul class="menu-list">
                     {% block actions %}
                     {% endblock actions %}
                 </ul>
             </aside>
-            <div class="column is-10">
+            <div class="column is-11">
                 {% block content %}<p>Content Block Placeholder</p>{% endblock %}
             </div>
         </div>
+        <hr>
+        <div class="content has-text-centered">
+            <p>
+                <strong>Liminal</strong> by <a href="https://github.com/zignig">Zignig</a>
+            </p>
+        </div>
     </div>
+
 </body>
 
 </html>
