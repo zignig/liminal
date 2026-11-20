@@ -1,9 +1,17 @@
 package liminal:controller@0.3.0;
 
-interface todo {
-    fetch: async func(host: string) -> string;
+interface admin-incoming {
+  record workload {
+    id: string,
+    status: bool,
+    name: string,
+  }
+
+  workloads: async func() -> list<workload>;
+  stop: async func(id: string) -> bool;
+  start: async func(name: string) -> bool;
 }
 
 world control {
-  export todo;
+  export admin-incoming;
 }

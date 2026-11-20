@@ -78,7 +78,7 @@ impl Router for EasyRouter {
     fn rewrite_incoming_request(
         &self,
         mut req: hyper::Request<hyper::body::Incoming>,
-    ) -> hyper::Request<hyper::body::Incoming> {
+    ) -> Result<hyper::Request<hyper::body::Incoming>,RouteError> {
         let mut parts = req.uri().clone().into_parts();
         let url_path = req.uri().path();
         // Grab the lock
@@ -96,7 +96,7 @@ impl Router for EasyRouter {
 
         *req.uri_mut() = Uri::from_parts(parts).unwrap();
 
-        req
+        Ok(req)
     }
 
     /// Pick a workload ID based on the incoming request

@@ -1,28 +1,9 @@
-/// Template objects and base handler
+/// Template base handler
 use askama::Template;
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse, Response},
 };
-
-#[derive(Template)]
-#[template(path = "index.html")]
-pub struct IndexTemplate {
-    pub username: Option<String>,
-    pub section: String,
-}
-
-#[derive(Template)]
-#[template(path = "workload.html")]
-pub struct WorkloadTemplate{ 
-    pub section: String
-}
-
-#[derive(Template)]
-#[template(path = "login.html")]
-pub struct LoginTemplate{
-    pub section: String
-}
 
 // Template responder
 pub struct HtmlTemplate<T>(pub T);

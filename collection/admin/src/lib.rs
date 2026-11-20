@@ -2,22 +2,31 @@ use axum::Router;
 use axum::http::StatusCode;
 use axum::routing::get;
 
+mod pages;
 mod static_files;
 mod templates;
-mod pages;
 
-use static_files::fixed_handler;
 use pages::page_router;
+use static_files::fixed_handler;
 use tower_cookies::CookieManagerLayer;
+use wstd::http::{Body, Error, Request, Response};
 
-#[wstd_axum::http_server]
-fn main() -> Router {
+mod bindgen {
+    wit_bindgen::generate!({
+        world: "admin-app",
+        generate_all,
+    });
+}
+
+#[wstd::http_server]
+async fn main(request: Request<Body>) -> Result<Response<Body>, Error> {
     let pages = page_router();
-    Router::new()
+    let service = Router::new()
         .merge(pages)
         .route("/static/{*file_name}", get(fixed_handler))
         .layer(CookieManagerLayer::new())
-        .fallback(not_found)
+        .fallback(not_found);
+    wstd_axum::serve(request, service).await
 }
 
 async fn not_found() -> (StatusCode, &'static str) {
