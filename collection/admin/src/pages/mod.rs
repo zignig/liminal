@@ -18,5 +18,4 @@ pub fn page_router() -> Router {
         .route("/login", get(login).post(login_post))
         .route("/logout", get(logout))
         .route("/index", get(index))
-        .route("/workload", get(workload))
 }

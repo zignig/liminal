@@ -22,12 +22,22 @@ var WorkList = function () {
         self.controller = function () { }
 
         self.view = function (ctrl, player) {
-            return m("table", {
-                class: "table is-fullwidth is-striped",
+            return m("div", {
+                class: "table",
             },
-                m("tbody",
-                    data.map(workload => m(workload))
-                )
+                m("table",
+                    [
+                        m("thead", m(
+                            "tr", [
+                            m("th", "Control"),
+                            m("th", "Status"),
+                            m("th", "Id"),
+                            m("th", "Description"),
+                        ])),
+                        m("tbody",
+                            data.map(workload => m(workload))
+                        )
+                    ])
             );
         }
         return self
@@ -65,28 +75,29 @@ function WorkRow(workload) {
             var new_status;
             switch (self.status) {
                 case "Running":
-                    cl = 'is-primary'
+                    cl = 'success'
                     bt = "stop"
                     new_status = "Stopped"
                     break;
                 case "Stopped":
-                    cl = 'is-warning'
+                    cl = 'warning'
                     bt = "start"
                     new_status = "Running"
                     break;
             };
             return m("tr", { class: cl },
                 [
-                    m("td", self.name),
-                    m("td", self.status),
-                    m("td", m("a", {
-                        class: "button is-small",
+                    m("td", m("button", {
+                        class: "small",
                         onclick: () => {
                             self.status = new_status;
                             Sender(self);
                         }
                     },
-                        bt))
+                        bt)),
+                    m("td", m("span", { class: " badge ", "data-variant": cl }, self.status)),
+                    m("td", self.name),
+                    m("td", "Workload description")
                 ]
             )
 

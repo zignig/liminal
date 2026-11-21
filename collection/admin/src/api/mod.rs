@@ -49,7 +49,7 @@ pub async fn worklist() -> Json<Vec<WorkItem>> {
 pub async fn prefill() {
     let data = open("testing").expect("no keyspace");
     // test data
-    for i in 0..15 {
+    for i in 0..100 {
         let wi = WorkItem {
             name: i.to_string(),
             id: 0,

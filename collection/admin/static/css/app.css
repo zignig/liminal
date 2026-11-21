@@ -1,28 +1,3 @@
-.menu {
-    margin-left: 1em;
-}
-
-.columns {
-    margin-top: 0.2em;
-}
-
-.brand {
-    margin-top: 0.4em;
-    margin-left: 0.4em;
-}
-
-.content {
-    padding: 0.4em;
-}
-
-.menu-list a {
-    font-size: 1.1em;
-}
-
-span.icon-name {
-    padding: 0.5em;
-}
-
-.wrappy {
-    overflow-wrap: anywhere;
-}
+  .section {
+    margin-bottom: var(--space-8);
+  }

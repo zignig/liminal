@@ -20,6 +20,7 @@ mod bindings {
 #[derive(Default)]
 pub struct CustomPlugin;
 
+
 #[async_trait::async_trait]
 impl HostPlugin for CustomPlugin {
     fn id(&self) -> &'static str {
@@ -43,4 +44,5 @@ impl HostPlugin for CustomPlugin {
         warn!("{:#?}", &interfaces);
         Ok(())
     }
+    
 }

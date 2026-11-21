@@ -1,7 +1,6 @@
 {% extends "_base.html" %}
 
 {% block head %}
-
 {% endblock %}
 
 {% block auth %}
@@ -18,13 +17,14 @@
 {% endblock %}
 
 {% block content %}
-<div class="content">
-    <!-- this is the controlled div -->
-    <div class="content" id="interface"></div>
-    <div class="status"></div>
-</div>
+<!-- this is the controlled div -->
+<div id="interface"></div>
+{% endblock %}
+
+{% block scripts %}
 <script src="static/js/mithril.js"></script>
 <script src="static/js/views/WorkloadList.js"></script>
+<script src="static/js/views/Catalogue.js"></script>
+<script src="static/js/views/Navbar.js"></script>
 <script src="static/js/frontpage.js"></script>
-
 {% endblock %}

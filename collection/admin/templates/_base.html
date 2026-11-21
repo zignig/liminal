@@ -1,59 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ section }}{% endblock %}</title>
-    <link rel="stylesheet" type="text/css" href="static/css/bulma.min.css" />
+    <link rel="stylesheet" type="text/css" href="static/css/oat.min.css" />
     <link rel="stylesheet" type="text/css" href="static/css/app.css" />
+    <script src="static/js/oat.min.js" defer></script>
     {% block head %}
-    <script src="static/js/app.js"></script>
     {% endblock %}
 </head>
 
-<body>
-    <nav class="navbar is-visible">
-        <div id="navMenu" class="navbar-menu">
-            <div class="navbar-brand">
-                <div class="block">
-                    <a href="index">
-                        <div class="title is-4 brand">Liminal</div>
-                    </a>
-                </div>
-            </div>
-            <div class="navbar-end">
-                <div class="navbar-item">
-                    <div class="buttons">
-                        {% block auth %}
-                        <a href="login" class="button is-small">
-                            Log in
-                        </a>
-                        {% endblock %}
-                    </div>
-                </div>
-            </div>
+<body data-sidebar-layout="always">
+    {% include "topbar.html" %}
+    <aside data-sidebar>
+        <nav>
+            <ul>
+                <li><a href="#!/list" aria-current="page">Home</a></li>
+                <li><a href="#!/catalogue">Catalogue</a></li>
+                <li>
+                    <details open>
+                        <summary>Settings</summary>
+                        <ul>
+                            <li><a href="#sidebar">General</a></li>
+                            <li><a href="#sidebar">Security</a></li>
+                            <li><a href="#sidebar">Billing</a></li>
+                        </ul>
+                    </details>
+                </li>
+            </ul>
+        </nav>
+        <footer>
+            <button class="outline small" id="prefill" style="width: 100%;">Prefill</button>
+            <button class="outline small" style="width: 100%;">Logout</button>
+        </footer>
+    </aside>
+    <main>
+        <div class="container">
+            {% block content %}<p>Content Block Placeholder</p>{% endblock %}
         </div>
-    </nav>
-    <div class="container">
-        {% include "menu.html" %}
-        <div class="columns">
-            <aside class="column is-1 aside menu">
-                <ul class="menu-list">
-                    {% block actions %}
-                    {% endblock actions %}
-                </ul>
-            </aside>
-            <div class="column is-11">
-                {% block content %}<p>Content Block Placeholder</p>{% endblock %}
-            </div>
-        </div>
-        <hr>
-        <div class="content has-text-centered">
-            <p>
-                <strong>Liminal</strong>
-            </p>
-        </div>
-    </div>
+    </main>
+    <script src="static/js/app.js"></script>
+    {%block scripts %}{% endblock %}
 </body>
 
 </html>
