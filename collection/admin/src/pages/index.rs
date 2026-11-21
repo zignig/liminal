@@ -6,7 +6,6 @@ use axum::response::IntoResponse;
 use tower_cookies::Cookies;
 
 // The template object
-
 #[derive(Template)]
 #[template(path = "index.html")]
 pub struct IndexTemplate {

@@ -1,42 +1,20 @@
 {% extends "_base.html" %}
 
 {% block content %}
-<nav class="panel">
-  <p class="panel-heading">Workloads</p>
-  <div class="panel-block">
-    <p class="control">
-      <input class="input" type="text" placeholder="Search" />
-    </p>
-  </div>
-  <p class="panel-tabs">
-    <a class="is-active">All</a>
-    <a href="workload/public">Public</a>
-    <a href="workload/private">Private</a>
-    <a>Sources</a>
-    <a>Forks</a>
-  </p>
-  <a class="panel-block is-active">
-    bulma
-  </a>
-  <a class="panel-block">
-    marksheet
-  </a>
-  <a class="panel-block">
-    minireset.css
-  </a>
-  <a class="panel-block">
-    jgthms.github.io
-  </a>
-  <a class="panel-block">
-    daniellowtw/infboard
-  </a>
-  <a class="panel-block">
-    mojs
-  </a>
-  <div class="panel-block">
-    <button class="button is-link is-outlined is-fullwidth">
-      Reset all filters
-    </button>
-  </div>
-</nav>
+<table class="table is-fullwidth is-striped">
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item }}</td>
+      <td>
+        <div class="field is-grouped is-grouped-right">
+          <p class="control">
+            <a class="button is-primary is-small">Delete</a>
+          </p>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}

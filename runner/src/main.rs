@@ -18,8 +18,14 @@ use webrouter::EasyRouter;
 
 // The wash stuff
 use wash_runtime::{
-    engine::Engine, host::{HostApi, HostBuilder, http::Ingress}, plugin::{
-        wasi_blobstore::{InMemoryProvider, MultiplexedAsyncBlobstore, MultiplexedBlobstore}, wasi_config::DynamicConfig, wasmcloud_secrets::WasmcloudSecrets,
+    engine::Engine,
+    host::{HostApi, HostBuilder, http::Ingress},
+    plugin::{
+        wasi_blobstore::{InMemoryProvider, MultiplexedAsyncBlobstore, MultiplexedBlobstore},
+        wasi_config::DynamicConfig,
+        wasi_keyvalue::InMemoryProvider as MemKeys,
+        wasi_keyvalue::MultiplexedKeyValue,
+        wasmcloud_secrets::WasmcloudSecrets,
     },
 };
 
@@ -62,6 +68,7 @@ async fn main() -> Result<()> {
     // Blob store thingo
     let wasm_blobs = MultiplexedAsyncBlobstore::new().with_provider(Arc::new(InMemoryProvider));
     let wasm_blobs2 = MultiplexedBlobstore::new(); //.with_provider(Arc::new(InMemoryProvider));
+    let wasm_keys = wash_runtime::plugin::wasi_keyvalue::InMemoryKeyValue::new();
 
     // let wasm_blobs = InMemoryBlobstore::new(None);
     let sec_plugin = WasmcloudSecrets::new();
@@ -75,6 +82,7 @@ async fn main() -> Result<()> {
         .with_plugin(Arc::new(cust_plug))?
         .with_plugin(Arc::new(wasm_blobs))?
         .with_plugin(Arc::new(wasm_blobs2))?
+        .with_plugin(Arc::new(wasm_keys))?
         .with_plugin(Arc::new(sec_plugin))?
         .build()?;
 
@@ -91,10 +99,10 @@ async fn main() -> Result<()> {
 
     // Load the default items
     let all = blobs.list_tags("").await?;
-    for item in all.iter(){
-        println!("{}",item);
+    for item in all.iter() {
+        println!("{}", item);
     }
-    
+
     let item_list = blobs.list_tags("preboot::").await?;
     info!("{:#?}", &item_list);
     for name in item_list.iter() {

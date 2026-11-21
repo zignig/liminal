@@ -1,3 +1,5 @@
+//! The administrator interface for the Liminal system 
+
 use axum::Router;
 use axum::http::StatusCode;
 use axum::routing::get;
@@ -11,13 +13,15 @@ use static_files::fixed_handler;
 use tower_cookies::CookieManagerLayer;
 use wstd::http::{Body, Error, Request, Response};
 
-mod bindgen {
+// Generate the bindings for the wit
+pub mod bindgen {
     wit_bindgen::generate!({
         world: "admin-app",
         generate_all,
     });
 }
 
+// Main router
 #[wstd::http_server]
 async fn main(request: Request<Body>) -> Result<Response<Body>, Error> {
     let pages = page_router();

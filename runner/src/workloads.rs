@@ -4,7 +4,7 @@ use std::collections::HashMap;
 // Need to include rcan and storage tricks
 
 // use crate::storage::IrohWorkload;
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use wash_runtime::{
@@ -59,6 +59,8 @@ impl Dispatcher {
     // }
 
     // given a single wasm , Drop it into the service zone
+
+    #[allow(dead_code)]
     pub fn service(&self, name: &str, data: Bytes) -> Result<WorkloadStartRequest> {
         // just offer up all of the hosts available interface
         let available = self.world.exports.clone().into_iter().collect();
@@ -90,7 +92,10 @@ impl Dispatcher {
     // given a single wasm , Drop it into the testing zone
     pub fn simple(&self, name: &str, data: Bytes) -> Result<WorkloadStartRequest> {
         // just offer up all of the hosts available interface
-        let available = self.world.exports.clone().into_iter().collect();
+        let mut available: Vec<WitInterface> = self.world.exports.clone().into_iter().collect();
+        let mut import_interfaces: Vec<WitInterface> =
+            self.world.imports.clone().into_iter().collect();
+        available.append(&mut import_interfaces);
 
         let res = LocalResources::default();
 
