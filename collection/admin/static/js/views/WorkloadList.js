@@ -23,7 +23,7 @@ var WorkList = function () {
 
         self.view = function (ctrl, player) {
             return m("table", {
-                class: "table  is-bordered is-fullwidth is-striped",
+                class: "table is-fullwidth is-striped",
             },
                 m("tbody",
                     data.map(workload => m(workload))
@@ -70,7 +70,7 @@ function WorkRow(workload) {
                     new_status = "Stopped"
                     break;
                 case "Stopped":
-                    cl = 'is-danger'
+                    cl = 'is-warning'
                     bt = "start"
                     new_status = "Running"
                     break;
