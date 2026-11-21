@@ -15,6 +15,9 @@ pub struct WorkloadTemplate{
 }
 
 pub async fn workload() -> impl IntoResponse {
+    
+    // get a list of the keys just for testing.
+
     let data = open("testing").expect("no keyspace");
     let items = data.list_keys(None).expect("no keys");
     let data = items.keys.clone();

@@ -5,10 +5,13 @@ use axum::http::StatusCode;
 use axum::routing::get;
 
 mod pages;
+mod api;
 mod static_files;
 mod templates;
 
 use pages::page_router;
+use api::api_router;
+
 use static_files::fixed_handler;
 use tower_cookies::CookieManagerLayer;
 use wstd::http::{Body, Error, Request, Response};
@@ -25,7 +28,9 @@ pub mod bindgen {
 #[wstd::http_server]
 async fn main(request: Request<Body>) -> Result<Response<Body>, Error> {
     let pages = page_router();
+    let api = api_router();
     let service = Router::new()
+        .nest("/api",api)
         .merge(pages)
         .route("/static/{*file_name}", get(fixed_handler))
         .layer(CookieManagerLayer::new())

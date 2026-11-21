@@ -1,7 +1,7 @@
 {% extends "_base.html" %}
 
 {% block head %}
-<script src="static/js/app.js"></script>
+
 {% endblock %}
 
 {% block auth %}
@@ -16,16 +16,15 @@
 {% endif %}
 
 {% endblock %}
+
 {% block content %}
 <div class="content">
-    <h1>Large Heading</h1>
-    <div class="card">
-        <div class="card-content">
-            <div class="content">
-                Text talking about stuff and things.
-            </div>
-        </div>
-    </div>
+    <!-- this is the controlled div -->
+    <div class="content" id="interface"></div>
     <div class="status"></div>
 </div>
+<script src="static/js/mithril.js"></script>
+<script src="static/js/views/WorkloadList.js"></script>
+<script src="static/js/frontpage.js"></script>
+
 {% endblock %}
