@@ -25,7 +25,6 @@ dependencies = [
  "axum",
  "axum-extra",
  "mime_guess",
- "postcard",
  "rust-embed",
  "serde",
  "serde_json",
