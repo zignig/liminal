@@ -4,12 +4,10 @@ use axum::{Router, routing::get};
 
 mod index;
 mod login;
-mod workloads;
 
 use index::index;
 use login::{login, login_post, logout};
 use workloads::workload;
-
 
 // Routing all the pages to endpoints
 pub fn page_router() -> Router {
