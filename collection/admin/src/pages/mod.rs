@@ -7,7 +7,6 @@ mod login;
 
 use index::index;
 use login::{login, login_post, logout};
-use workloads::workload;
 
 // Routing all the pages to endpoints
 pub fn page_router() -> Router {

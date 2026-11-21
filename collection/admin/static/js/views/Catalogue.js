@@ -9,11 +9,15 @@ var Catalogue = function () {
             data.push(CatalogueItem("bob"));
             data.push(CatalogueItem("bill"));
             data.push(CatalogueItem("bradley"));
+            data.push(CatalogueItem("borat"));
+            data.push(CatalogueItem("brian"));
         }
 
         self.controller = function () { }
 
         self.view = function () {
+            // chunks = Map.groupBy(data, (_, index) => Math.floor(index / 3));
+            // chunks.map(item => console.log(item));
             return m("div", { class: "container" },
                 [
                     m("h2", "Catalogue"),
@@ -36,12 +40,7 @@ var CatalogueItem = function (name) {
             return m("article", { class: "card" },
                 [
                     m("header",
-                        [
-                            m("h3", name),
-                            m("p",
-                                "description"
-                            ),
-                        ],
+                        m("h3", name)
                     ),
                     m("p", "stuff stuff stuff"),
                 ]
