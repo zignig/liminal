@@ -1,3 +1,11 @@
   .section {
-    margin-bottom: var(--space-8);
+    margin-bottom: var(--space-4);
+  }
+
+  table tbody tr.success {
+    background-color: #001a00;
+  }
+
+  table tbody tr.warning {
+    background-color: #1a0000;
   }

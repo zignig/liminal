@@ -1,23 +1,18 @@
-var SideBar = function () {
-    var overlay = function () {
-        var self = this;
-        var items = [
+// Sidebar component
+// Needs stacked menu sets 
+
+class SideBar {
+    constructor(vnode) {
+        this.items = [
             { name: "Home", ref: "#!/list" },
             { name: "Catalogue", ref: "#!/catalogue" },
             { name: "Search", ref: "#!/search" }
         ];
-
-        self.oninit = function () {
-        }
-
-        self.view = function (ctrl, player) {
-            return m("ul", items.map(item => m(SidebarItem,item)));
-        };
-
-        return self
     }
-    return new overlay()
-};
+    view(vnode) {
+        return m("ul", this.items.map(item => m(SidebarItem, item)));
+    };
+}
 
 class SidebarItem {
     constructor(vnode) {
