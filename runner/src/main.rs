@@ -1,16 +1,17 @@
 //! A wasm cloud attached to an Iroh node.
 mod trace;
-mod wash_host;
+// mod wash_host;
+mod auth; 
 
+use auth::AuthService;
 use anyhow::Result;
 use clap::Parser;
+use tracing::warn;
 use std::path::PathBuf;
-use wash_host::WasmHost;
 
-// Local tracing
-// use tracing::info;
+// Faster Compile times ( remove wask host for now)
+// use wash_host::WasmHost;
 
-// use crate::workloads::Dispatcher;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -28,20 +29,27 @@ async fn main() -> Result<()> {
     // Setup and start some logging.
     trace::start_logging();
 
+    
     // Get the args and print them
     let args = Args::parse();
     println!("{:#?}", &args);
 
-    let _wh = if args.run {
-        let wh = WasmHost::new().await?;
-        if let Some(path) = args.input {
-            let _ = wh.upload(path, args.service).await;
-        }
-        wh.startup().await?;
-        Some(wh)
-    } else {
-        None
-    };
+    let _auth = AuthService::new().await?;
+
+    // Create the WASM engine ( needs config to go into it )
+
+    // CHOP
+    // let wh = WasmHost::new().await?;
+    
+    // if let Some(path) = args.input {
+    //     let _ = wh.upload(path, args.service).await;
+    // }
+
+    // wh.startup().await?;
+    // UNCHOP
+
     tokio::signal::ctrl_c().await?;
+
+    warn!("Exit Program");
     Ok(())
 }

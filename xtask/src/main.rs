@@ -11,17 +11,18 @@ struct Args {
     action: Option<String>,
 }
 
-const PLUGINS: [&str; 3] = ["plugin","qrcoder","base_service"];
+const PLUGINS: [&str; 3] = ["plugin", "qrcoder", "base_service"];
 
 fn main() -> Result<()> {
     let args = Args::parse();
     println!("{:#?}", args);
-
-    let target_arch = "wasm32-wasip2";
-    for plugin_name in PLUGINS.iter() {
-        build(plugin_name, target_arch)?;
-        copy_into_place(plugin_name, target_arch);
-    }
+    let r = run();
+    println!("{:#?}", r);
+    // let target_arch = "wasm32-wasip2";
+    // for plugin_name in PLUGINS.iter() {
+    //     build(plugin_name, target_arch)?;
+    //     copy_into_place(plugin_name, target_arch);
+    // }
     // From "target\wasm32-unknown-unknown\release\plugin.wasm"
     // 2. Perform your post-build tasks here
     Ok(())
@@ -60,5 +61,12 @@ fn build(plugin_name: &str, target_arch: &str) -> Result<()> {
     if !status.success() {
         return Err(anyhow!("{} failed to build", plugin_name));
     }
+    Ok(())
+}
+
+fn run() -> Result<()> {
+    let status = Command::new("target/debug/runner.exe")
+        .status()
+        .expect("Failed to run cargo build");
     Ok(())
 }

@@ -9,7 +9,7 @@ clap = { version = "4.6.7", features = ["derive"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 anyhow = "1.0.104"
-iroh-blobs = { version = "0.104.0", default-features = false, features = [
+iroh-blobs = { version = "0.105.0", default-features = false, features = [
     "fs-store",
 ] }
 tokio = { version = "1.54.1", features = ["full"] }
@@ -19,18 +19,11 @@ n0-future = "0.3.2"
 tracing-subscriber = "0.3.23"
 tracing = "0.1.44"
 
-# wash-runtime = { git = "https://github.com/wasmCloud/wasmCloud", tag = "v2.11.0", default-features = false, features = [
-#     "wasi-keyvalue",
-#     "wasi-config",
-#     "wasi-logging",
-#     "wasi-blobstore",
-# ] }
-
 wash-runtime = { path = "..\\..\\wasmCloud\\crates\\wash-runtime", default-features = false, features = [
     "wasi-keyvalue",
     "wasi-config",
     "wasi-logging",
-    "wasi-blobstore",  
+    "wasi-blobstore",
     "wasm_component_model_implements",
 ] }
 
@@ -47,3 +40,7 @@ bytes = "1.12.1"
 wit-component = "0.263.0"
 toml = "1.2.1"
 semver = "1.0.28"
+iroh = "1.5.0"
+irpc = "1.0.0"
+turso = "0.8.4"
+rcan = "0.4.1"
