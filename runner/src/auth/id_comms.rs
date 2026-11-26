@@ -5,13 +5,17 @@ use std::{collections::BTreeMap, time::SystemTime};
 
 use iroh::EndpointId;
 use irpc::{Client, WithChannels, channel::oneshot, rpc_requests};
-use rcan::Capability;
+// use rcan::Capability;
 use rcan::Rcan;
 
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::Sender;
 use tracing::debug;
 use tracing::info;
+
+use super::caps::Cap;
+use super::database::PersistStore;
 
 // use crate::capset::Caps;
 // use crate::id_db::PersistStore;
@@ -32,8 +36,9 @@ pub struct Fren {
     id: EndpointId,
     status: Status,
     created: i64,
-    rcan: Option<Rcan<Caps>>,
+    rcan: Option<Rcan<Cap>>,
 }
+
 
 impl Fren {
     fn new(id: EndpointId) -> Self {
@@ -52,14 +57,14 @@ impl Fren {
     }
 
     // TDO add the rest of the permits
-    pub fn can_info(&self) -> bool {
-        if let Some(rcan) = self.rcan.clone() {
-            let base_cap = Caps::info();
-            let cap = rcan.capability();
-            return cap.permits(&base_cap);
-        }
-        false
-    }
+    // pub fn can_info(&self) -> bool {
+    //     if let Some(rcan) = self.rcan.clone() {
+    //         let base_cap = Caps::info();
+    //         let cap = rcan.capability();
+    //         return cap.permits(&base_cap);
+    //     }
+    //     false
+    // }
 }
 
 // Irpc constructs
@@ -111,7 +116,6 @@ enum StorageProtocol {
 
 struct Actor {
     recv: tokio::sync::mpsc::Receiver<IdentityMessage>,
-    store: BTreeMap<EndpointId, Fren>,
     db: PersistStore,
 }
 
@@ -126,7 +130,7 @@ impl Actor {
         match msg {
             IdentityMessage::Get(get) => {
                 let WithChannels { tx, inner, .. } = get;
-                let value = match self.store.get(&inner.key) {
+                let value = match self.db.get(&inner.key).await {
                     Some(value) => Some(value.clone()),
                     None => None,
                 };
@@ -135,20 +139,19 @@ impl Actor {
 
             IdentityMessage::Set(set) => {
                 let WithChannels { tx, inner, .. } = set;
-                let _ = self.db.add(inner.key.clone()).await;
-                self.store.insert(inner.key, inner.value);
+                self.db.insert(inner.key, inner.value).await;
                 tx.send(()).await.ok();
             }
 
             IdentityMessage::Remove(remove) => {
                 let WithChannels { tx, inner, .. } = remove;
-                self.store.remove(&inner.key);
+                self.db.remove(&inner.key);
                 tx.send(()).await.ok();
             }
 
             IdentityMessage::Check(check) => {
                 let WithChannels { tx, inner, .. } = check;
-                let is_good = match self.store.get(&inner.key) {
+                let is_good = match self.db.get(&inner.key).await.unwrap() {
                     Some(fren) => {
                         let _ = self.db.add(inner.key.clone()).await;
                         // Check to see if the rbac is still valid
@@ -171,7 +174,7 @@ impl Actor {
             IdentityMessage::List(list) => {
                 let WithChannels { tx, .. } = list;
                 let mut res: Vec<Fren> = Vec::new();
-                for item in self.store.iter() {
+                for item in self.db.list().await {
                     let (_, item) = item;
                     res.push(item.clone());
                 }
@@ -186,20 +189,18 @@ pub struct IdentityApi {
 }
 
 impl IdentityApi {
-    pub async fn new(db_path: Option<PathBuf>) -> IdentityApi {
+    pub async fn new(db_path: Option<PathBuf>) -> Result<IdentityApi> {
         let (tx, rx) = tokio::sync::mpsc::channel(5);
-        let store = BTreeMap::default();
         let db = match db_path {
-            Some(path) => PersistStore::new(path).await.unwrap(),
-            None => PersistStore::new_mem().await.unwrap(),
+            Some(path) => PersistStore::new(path).await?,
+            None => PersistStore::new_mem().await?,
         };
         let actor = Actor {
             recv: rx,
-            store: store,
             db: db,
         };
         n0_future::task::spawn(actor.run());
-        IdentityApi { tx: tx.clone() }
+        Ok(IdentityApi { tx: tx.clone() })
     }
 
     pub fn client(&self) -> IdClient {
@@ -221,7 +222,7 @@ impl IdClient {
         self.inner.rpc(Get { key }).await
     }
 
-    pub async fn new_fren(&self, key: EndpointId, rcan: Rcan<Caps>) {
+    pub async fn new_fren(&self, key: EndpointId, rcan: Rcan<Cap>) {
         // info!("new fren {:#?} -- {:#?}",key,rcan);
         match self.inner.rpc(Get { key }).await.unwrap() {
             Some(fren) => {
