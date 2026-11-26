@@ -11,7 +11,7 @@ use rcan::Rcan;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::Sender;
-use tracing::debug;
+use tracing::{debug, error};
 use tracing::info;
 
 use super::caps::Cap;
@@ -122,15 +122,16 @@ struct Actor {
 impl Actor {
     async fn run(mut self) {
         while let Some(msg) = self.recv.recv().await {
-            self.handle(msg).await;
+            let res = self.handle(msg).await;
+            error!("{:#?}",res);
         }
     }
 
-    async fn handle(&mut self, msg: IdentityMessage) {
+    async fn handle(&mut self, msg: IdentityMessage) -> Result<()> {
         match msg {
             IdentityMessage::Get(get) => {
                 let WithChannels { tx, inner, .. } = get;
-                let value = match self.db.get(&inner.key).await {
+                let value = match self.db.get(&inner.key).await? {
                     Some(value) => Some(value.clone()),
                     None => None,
                 };
@@ -139,21 +140,21 @@ impl Actor {
 
             IdentityMessage::Set(set) => {
                 let WithChannels { tx, inner, .. } = set;
-                self.db.insert(inner.key, inner.value).await;
+                self.db.insert(inner.key, inner.value).await?;
                 tx.send(()).await.ok();
             }
 
             IdentityMessage::Remove(remove) => {
                 let WithChannels { tx, inner, .. } = remove;
-                self.db.remove(&inner.key);
+                self.db.remove(&inner.key).await?;
                 tx.send(()).await.ok();
             }
 
             IdentityMessage::Check(check) => {
                 let WithChannels { tx, inner, .. } = check;
-                let is_good = match self.db.get(&inner.key).await.unwrap() {
+                let is_good = match self.db.get(&inner.key).await? {
                     Some(fren) => {
-                        let _ = self.db.add(inner.key.clone()).await;
+                        let _ = self.db.add(inner.key.clone()).await?;
                         // Check to see if the rbac is still valid
                         let mut status = false;
                         if let Some(rcan) = fren.rcan.clone() {
@@ -174,13 +175,14 @@ impl Actor {
             IdentityMessage::List(list) => {
                 let WithChannels { tx, .. } = list;
                 let mut res: Vec<Fren> = Vec::new();
-                for item in self.db.list().await {
+                for item in self.db.list().await? {
                     let (_, item) = item;
                     res.push(item.clone());
                 }
                 tx.send(res).await.ok();
             }
         }
+        Ok(())
     }
 }
 
